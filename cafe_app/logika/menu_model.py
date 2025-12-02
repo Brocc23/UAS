@@ -1,0 +1,58 @@
+from cafe_app.database import get_db
+
+def get_all_menu():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nama, kategori, harga, stok, foto FROM menu")
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def get_menu_by_id(menu_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nama, kategori, harga, stok, foto FROM menu WHERE id=?", (menu_id,))
+    data = cur.fetchone()
+    conn.close()
+    return data
+
+def add_menu(nama: str, kategori: str, harga: int, stok: int, foto: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO menu (nama, kategori, harga, stok, foto) VALUES (?, ?, ?, ?, ?)",
+        (nama, kategori, harga, stok, foto)
+    )
+    conn.commit()
+    conn.close()
+
+def update_menu(menu_id: int, nama: str, kategori: str, harga: int, stok: int, foto: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE menu SET nama=?, kategori=?, harga=?, stok=?, foto=? WHERE id=?",
+        (nama, kategori, harga, stok, foto, menu_id)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_menu(menu_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM menu WHERE id=?", (menu_id,))
+    conn.commit()
+    conn.close()
+
+def reduce_stock(menu_id: int, jumlah: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE menu SET stok = stok - ? WHERE id=?", (jumlah, menu_id))
+    conn.commit()
+    conn.close()
+
+def restore_stock(menu_id: int, jumlah: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE menu SET stok = stok + ? WHERE id=?", (jumlah, menu_id))
+    conn.commit()
+    conn.close()
