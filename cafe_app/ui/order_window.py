@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from cafe_app.logika.menu_model import MenuModel
-from cafe_app.logika.order_model import OrderModel
+from cafe_app.logika.menu_model import menu_model
+from cafe_app.logika.order_model import order_model
 
 class OrderWindow:
     def __init__(self, master, meja_id=None, pembeli_nama=None):

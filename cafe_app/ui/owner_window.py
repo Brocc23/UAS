@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from cafe_app.ui.report_window import ReportWindow
-from cafe_app.ui.admin_window import AdminWindow
-from cafe_app.ui.kasir_window import KasirWindow
+from cafe_app.ui.report_window import report_window
+from cafe_app.ui.admin_window import admin_window
+from cafe_app.ui.kasir_window import kasir_window
 
 class OwnerWindow:
     def __init__(self, master):
