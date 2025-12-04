@@ -1,6 +1,5 @@
 import sqlite3
-from cafe_app.database import DB_PATH
-
+from cafe_app.database import DB_NAME
 class PromoModel:
     def __init__(self):
         self.conn = sqlite3.connect(DB_PATH)

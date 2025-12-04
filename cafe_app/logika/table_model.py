@@ -1,5 +1,5 @@
 import sqlite3
-from cafe_app.database import DB_PATH
+from cafe_app.database import DB_NAME
 
 class ReportModel:
     def __init__(self):
