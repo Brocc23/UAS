@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from cafe_app.utils import show_info, show_error
-from cafe_app.logika.menu_model import menu_model
-from cafe_app.logika.user_model import user_model
-from cafe_app.ui.report_window import report_window
+from cafe_app.logika import menu_model
+from cafe_app.logika import user_model
+from cafe_app.ui import report_window
 
 class AdminWindow:
     def __init__(self, root, user):

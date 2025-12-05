@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import PhotoImage
-from cafe_app.logika.payment_model import payment_model
+from cafe_app.logika import payment_model
 
 
 class PaymentWindow:

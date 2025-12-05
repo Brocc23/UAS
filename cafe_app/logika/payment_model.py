@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime
-from cafe_app.database import DB_NAME
+from cafe_app.database import DB_PATH
 
 class PaymentModel:
     def __init__(self):

@@ -1,17 +1,26 @@
 import sqlite3
+import os
 
-DB_NAME = "cafe_app.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "cafe_app.db")
 
 def get_connection():
-    return sqlite3.connect(DB_NAME)
-
-def get_db():
-    conn = connect_db()
-    return conn
+    return sqlite3.connect(DB_PATH)
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
+
+def get_menu_items():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nama, kategori, harga, stok, foto FROM menu")
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+def get_db():
+    return get_connection()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -65,3 +74,6 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+

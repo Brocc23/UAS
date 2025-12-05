@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from cafe_app.logika.menu_model import menu_model
-from cafe_app.ui.order_window import order_window
+from cafe_app.logika import menu_model
+from cafe_app.ui import order_window
 
 class PembeliWindow:
     def __init__(self, master):
