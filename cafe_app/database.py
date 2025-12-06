@@ -8,8 +8,40 @@ def get_connection():
     return sqlite3.connect(DB_PATH)
 
 def init_db():
-    conn = get_connection()
-    cursor = conn.cursor()
+    conn = sqlite3.connect("buat_db.py")  
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS menu (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama TEXT NOT NULL,
+            kategori TEXT NOT NULL,
+            harga INTEGER NOT NULL,
+            stok INTEGER NOT NULL,
+            foto TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tables (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nomor INTEGER UNIQUE NOT NULL,
+            status TEXT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
 
 def get_menu_items():
     conn = get_connection()
