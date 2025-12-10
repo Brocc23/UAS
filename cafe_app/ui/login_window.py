@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 from cafe_app.auth import login
-from cafe_app.ui import admin_window
-from cafe_app.ui import kasir_window
-from cafe_app.ui import waiter_window
-from cafe_app.ui import pembeli_window
-from cafe_app.ui import owner_window
 from cafe_app.utils import show_error
+from cafe_app.ui.admin_window import AdminWindow
+from cafe_app.ui.kasir_window import KasirWindow
+from cafe_app.ui.waiter_window import WaiterWindow
+from cafe_app.ui.pembeli_window import PembeliWindow
+from cafe_app.ui.owner_window import OwnerWindow
 
 class LoginWindow:
     def __init__(self, root):
@@ -36,11 +36,11 @@ class LoginWindow:
         role = user[2]
 
         if role == "admin":
-            AdminWindow(self.root)
+            AdminWindow(self.root, user)
         elif role == "kasir":
             KasirWindow(self.root)
         elif role == "waiter":
-            WaiterWindow(self.root)
+            WaiterWindow(self.root, user)
         elif role == "pembeli":
             PembeliWindow(self.root)
         elif role == "owner":
