@@ -4,7 +4,6 @@ from cafe_app.logika.report_model import ReportModel
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-
 class ReportWindow:
     def __init__(self, master):
         self.master = master
@@ -57,12 +56,6 @@ class ReportWindow:
         self.tree.heading("meja", text="Meja")
         self.tree.heading("status", text="Status")
 
-        self.tree.column("tanggal", width=120)
-        self.tree.column("total", width=90)
-        self.tree.column("metode", width=120)
-        self.tree.column("meja", width=80)
-        self.tree.column("status", width=100)
-
         self.tree.pack(pady=10)
 
         self.label_total = tk.Label(self.master, text="Total Pendapatan: Rp 0", font=("Arial", 12, "bold"))
@@ -95,29 +88,33 @@ class ReportWindow:
 
     def show_chart(self):
         period = self.filter_period.get()
+        pay_method = self.filter_pay.get()
 
         if not period:
-            messagebox.showwarning("Peringatan", "Pilih periode untuk grafik.")
+            messagebox.showwarning("Peringatan", "Pilih periode grafik.")
             return
 
         data = self.report_model.get_report(period)
 
+        if pay_method != "Semua":
+            data = [row for row in data if row[2].lower() == pay_method.lower()]
+
         if not data:
-            messagebox.showinfo("Info", "Tidak ada data untuk ditampilkan pada grafik.")
+            messagebox.showinfo("Info", "Tidak ada data untuk ditampilkan.")
             return
 
         for widget in self.chart_frame.winfo_children():
             widget.destroy()
 
-        dates = [row[0] for row in data]
+        labels = [row[0] for row in data]
         totals = [row[1] for row in data]
 
         fig = Figure(figsize=(6, 3), dpi=100)
         ax = fig.add_subplot(111)
-        ax.plot(dates, totals, marker="o")
-        ax.set_title("Grafik Penjualan")
-        ax.set_ylabel("Total Pendapatan")
+        ax.plot(labels, totals, marker="o")
+        ax.set_title(f"Grafik Pendapatan ({period})")
         ax.set_xlabel("Tanggal")
+        ax.set_ylabel("Total Pendapatan")
         ax.grid(True)
 
         canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)

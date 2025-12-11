@@ -7,11 +7,20 @@ class WaiterWindow:
         self.root = root
         self.user = user
 
+        username = None
+        try:
+            username = user.get("username")
+        except Exception:
+            try:
+                username = user[1]
+            except Exception:
+                username = "Unknown"
+
         self.window = tk.Toplevel(root)
         self.window.title("Waiter Panel")
         self.window.geometry("600x450")
 
-        tk.Label(self.window, text=f"Waiter: {user['username']}", font=("Arial", 12, "bold")).pack(pady=10)
+        tk.Label(self.window, text=f"Waiter: {username}", font=("Arial", 12, "bold")).pack(pady=10)
 
         frame = tk.Frame(self.window)
         frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -32,6 +41,9 @@ class WaiterWindow:
             {"id": 101, "meja": 3, "status": "Menunggu Diantar"},
             {"id": 102, "meja": 5, "status": "Menunggu Diantar"},
         ]
+
+        for i in self.tree.get_children():
+            self.tree.delete(i)
 
         for order in orders:
             self.tree.insert("", "end", values=(order["id"], order["meja"], order["status"]))

@@ -33,19 +33,27 @@ class LoginWindow:
             show_error("Username atau password salah")
             return
 
-        role = user[2]
+        # user = (id, username, role)
+        user = {
+            "id": user[0],
+            "username": user[1],
+            "role": user[2]
+        }
+
+        role = user["role"]
 
         if role == "admin":
             AdminWindow(self.root, user)
         elif role == "kasir":
-            KasirWindow(self.root)
+            KasirWindow(self.root, user)
         elif role == "waiter":
             WaiterWindow(self.root, user)
         elif role == "pembeli":
-            PembeliWindow(self.root)
+            PembeliWindow(self.root, user)
         elif role == "owner":
-            OwnerWindow(self.root)
+            OwnerWindow(self.root, user)
         else:
             show_error("Role tidak dikenal")
 
         self.frame.destroy()
+

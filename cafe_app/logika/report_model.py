@@ -9,26 +9,48 @@ class ReportModel:
 
         if period == "Harian":
             query = """
-                SELECT tanggal, total, metode, meja_id, status
-                FROM transaksi
-                WHERE tanggal = date('now')
+                SELECT 
+                    t.tanggal,
+                    SUM(dt.subtotal) AS total_pendapatan,
+                    t.metode_pembayaran,
+                    t.meja_id,
+                    t.status
+                FROM transaksi t
+                JOIN detail_transaksi dt ON t.id = dt.transaksi_id
+                WHERE DATE(t.tanggal) = DATE('now')
+                GROUP BY t.id
             """
 
         elif period == "Mingguan":
             query = """
-                SELECT tanggal, total, metode, meja_id, status
-                FROM transaksi
-                WHERE tanggal >= date('now', '-7 days')
+                SELECT 
+                    t.tanggal,
+                    SUM(dt.subtotal) AS total_pendapatan,
+                    t.metode_pembayaran,
+                    t.meja_id,
+                    t.status
+                FROM transaksi t
+                JOIN detail_transaksi dt ON t.id = dt.transaksi_id
+                WHERE DATE(t.tanggal) >= DATE('now', '-7 days')
+                GROUP BY t.id
             """
 
         elif period == "Bulanan":
             query = """
-                SELECT tanggal, total, metode, meja_id, status
-                FROM transaksi
-                WHERE strftime('%Y-%m', tanggal) = strftime('%Y-%m', 'now')
+                SELECT 
+                    t.tanggal,
+                    SUM(dt.subtotal) AS total_pendapatan,
+                    t.metode_pembayaran,
+                    t.meja_id,
+                    t.status
+                FROM transaksi t
+                JOIN detail_transaksi dt ON t.id = dt.transaksi_id
+                WHERE strftime('%Y-%m', t.tanggal) = strftime('%Y-%m', 'now')
+                GROUP BY t.id
             """
 
         else:
+            conn.close()
             return []
 
         cur.execute(query)

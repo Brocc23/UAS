@@ -1,17 +1,17 @@
 import tkinter as tk
 from tkinter import ttk
+import uuid
 from cafe_app.database import get_menu_items
 from cafe_app.utils import show_info, show_error
 
 class KasirWindow:
-    def __init__(self, root):
+    def __init__(self, root, user):
         self.root = root
+        self.user = user
         self.window = tk.Toplevel(root)
         self.window.title("Kasir - Café App")
         self.window.geometry("900x500")
         self.window.resizable(False, False)
-
-        self.selected_items = []
 
         self.build_ui()
 
@@ -70,15 +70,15 @@ class KasirWindow:
         tk.Button(frame_right, text="Checkout", command=self.checkout).pack(pady=10)
 
     def load_menu(self):
-        data = get_menu_items()  
+        data = get_menu_items()
 
         for item in data:
-            item_id = item[0]
+            menu_id = item[0]
             nama = item[1]
             harga = item[3]
             stok = item[4]
 
-            self.menu_list.insert("", tk.END, iid=item_id, values=(nama, harga, stok))
+            self.menu_list.insert("", tk.END, iid=str(menu_id), values=(nama, harga, stok))
 
     def add_item(self):
         selected = self.menu_list.focus()
@@ -89,7 +89,8 @@ class KasirWindow:
         nama, harga, stok = self.menu_list.item(selected, "values")
         harga = int(harga)
 
-        self.cart.insert("", tk.END, iid=selected, values=(nama, 1, harga))
+        iid_cart = str(uuid.uuid4()) 
+        self.cart.insert("", tk.END, iid=iid_cart, values=(nama, 1, harga))
 
     def remove_item(self):
         selected = self.cart.focus()

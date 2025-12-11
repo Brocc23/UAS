@@ -1,38 +1,46 @@
 import tkinter as tk
-from tkinter import ttk
-from cafe_app.ui.report_window import ReportWindow
 from cafe_app.ui.admin_window import AdminWindow
-from cafe_app.ui.kasir_window import KasirWindow
+from cafe_app.ui.report_window import ReportWindow
 
 class OwnerWindow:
-    def __init__(self, master):
+    def __init__(self, master, user):
         self.master = master
-        self.master.title("Owner Panel")
-        self.master.geometry("500x350")
+        self.user = user
 
-        frame = ttk.Frame(master, padding=20)
-        frame.pack(fill="both", expand=True)
+        self.window = tk.Toplevel(master)
+        self.window.title("Owner Panel")
+        self.window.geometry("400x300")
 
-        title = ttk.Label(frame, text="Owner Dashboard", font=("Poppins", 20, "bold"))
-        title.pack(pady=10)
+        tk.Label(
+            self.window,
+            text=f"Owner: {self.user['username']}",
+            font=("Arial", 14, "bold")
+        ).pack(pady=15)
 
-        ttk.Button(frame, text="Kelola Menu & Data", width=30,
-                   command=self.buka_admin).pack(pady=8)
+        tk.Button(
+            self.window,
+            text="Buka Admin Panel",
+            width=25,
+            command=self.open_admin
+        ).pack(pady=10)
 
-        ttk.Button(frame, text="Lihat Laporan Transaksi", width=30,
-                   command=self.buka_laporan).pack(pady=8)
+        tk.Button(
+            self.window,
+            text="Lihat Laporan",
+            width=25,
+            command=self.open_report
+        ).pack(pady=10)
 
-        ttk.Button(frame, text="Simulasi Kasir", width=30,
-                   command=self.buka_kasir).pack(pady=8)
+        tk.Button(
+            self.window,
+            text="Logout",
+            width=25,
+            command=self.window.destroy
+        ).pack(pady=20)
 
-        ttk.Button(frame, text="Exit", width=30,
-                   command=self.master.destroy).pack(pady=8)
+    def open_admin(self):
+        AdminWindow(self.master, self.user)
 
-    def buka_admin(self):
-        AdminWindow(tk.Toplevel(self.master))
+    def open_report(self):
 
-    def buka_laporan(self):
-        ReportWindow(tk.Toplevel(self.master))
-
-    def buka_kasir(self):
-        KasirWindow(tk.Toplevel(self.master))
+        ReportWindow(self.master)

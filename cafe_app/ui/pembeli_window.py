@@ -4,8 +4,10 @@ from cafe_app.logika.menu_model import MenuModel
 from cafe_app.ui.order_window import OrderWindow
 
 class PembeliWindow:
-    def __init__(self, master):
+    def __init__(self, master, user):
         self.master = master
+        self.user = user
+
         self.master.title("Halaman Pembeli")
         self.master.geometry("600x450")
 

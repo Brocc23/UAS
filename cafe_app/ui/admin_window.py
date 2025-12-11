@@ -4,7 +4,6 @@ from tkinter import filedialog
 from cafe_app.utils import show_info, show_error
 from cafe_app.logika.menu_model import MenuModel
 from cafe_app.logika.user_model import UserModel
-from cafe_app.ui.report_window import ReportWindow
 
 class AdminWindow:
     def __init__(self, root, user):
@@ -23,15 +22,12 @@ class AdminWindow:
 
         self.tab_menu = tk.Frame(tab_control)
         self.tab_user = tk.Frame(tab_control)
-        self.tab_report = tk.Frame(tab_control)
 
         tab_control.add(self.tab_menu, text="Kelola Menu")
         tab_control.add(self.tab_user, text="Kelola Pengguna")
-        tab_control.add(self.tab_report, text="Laporan Penjualan")
 
         self.build_menu_tab()
         self.build_user_tab()
-        self.build_report_tab()
 
     def build_menu_tab(self):
         frame = tk.Frame(self.tab_menu)
@@ -196,6 +192,3 @@ class AdminWindow:
         UserModel().delete_user(self.selected_user_id)
         show_info("User berhasil dihapus.")
         self.load_users()
-
-    def build_report_tab(self):
-        tk.Button(self.tab_report, text="Buka Laporan", command=lambda: ReportWindow(self.root)).pack(pady=20)
