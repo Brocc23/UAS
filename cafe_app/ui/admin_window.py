@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from cafe_app.utils import show_info, show_error
-from cafe_app.logika import menu_model
-from cafe_app.logika import user_model
+from cafe_app.logika.menu_model import MenuModel
+from cafe_app.logika.user_model import UserModel
 from cafe_app.ui.report_window import ReportWindow
 
 class AdminWindow:

@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from cafe_app.logika import menu_model
-from cafe_app.logika import order_model
+from cafe_app.logika.menu_model import MenuModel
+from cafe_app.logika.order_model import OrderModel
+
 
 class OrderWindow:
     def __init__(self, master, meja_id=None, pembeli_nama=None):
@@ -57,11 +58,14 @@ class OrderWindow:
         self.load_menu()
         self.load_order_table()
 
-    def load_menu(self):
-        self.menu_list.delete(*self.menu_list.get_children())
-        data = self.menu_model.get_all_menu()
-        for item in data:
-            self.menu_list.insert("", "end", values=item)
+def load_menu(self):
+    self.menu_list.delete(*self.menu_list.get_children())
+    data = self.menu_model.get_all_menu()
+
+    for item in data:
+        self.menu_list.insert("", "end", values=item[1:5])
+
+
 
     def load_order_table(self):
         if hasattr(self, "order_table"):
