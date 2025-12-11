@@ -1,14 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 from cafe_app.database import get_menu_items
-from cafe_app.utils import show_info, show_error, ask_yes_no
+from cafe_app.utils import show_info, show_error
 
 class KasirWindow:
     def __init__(self, root):
         self.root = root
         self.window = tk.Toplevel(root)
         self.window.title("Kasir - Café App")
-        self.window.geometry("800x500")
+        self.window.geometry("900x500")
         self.window.resizable(False, False)
 
         self.selected_items = []
@@ -22,11 +22,22 @@ class KasirWindow:
         lbl = tk.Label(frame_left, text="Menu Items", font=("Arial", 14))
         lbl.pack()
 
-        self.menu_list = ttk.Treeview(frame_left, columns=("Harga", "Stok"), show="headings", height=20)
+        # ==== Tambahkan kolom NAMA ====
+        self.menu_list = ttk.Treeview(
+            frame_left,
+            columns=("Nama", "Harga", "Stok"),
+            show="headings",
+            height=20
+        )
+        self.menu_list.heading("Nama", text="Nama")
         self.menu_list.heading("Harga", text="Harga")
         self.menu_list.heading("Stok", text="Stok")
-        self.menu_list.pack()
 
+        self.menu_list.column("Nama", width=150)
+        self.menu_list.column("Harga", width=80)
+        self.menu_list.column("Stok", width=60)
+
+        self.menu_list.pack()
         self.load_menu()
 
         frame_mid = tk.Frame(self.window)
@@ -41,35 +52,59 @@ class KasirWindow:
         lbl2 = tk.Label(frame_right, text="Keranjang", font=("Arial", 14))
         lbl2.pack()
 
-        self.cart = ttk.Treeview(frame_right, columns=("Jumlah", "Subtotal"), show="headings", height=15)
+        # ==== Tambahkan kolom NAMA juga di cart ====
+        self.cart = ttk.Treeview(
+            frame_right,
+            columns=("Nama", "Jumlah", "Subtotal"),
+            show="headings",
+            height=15
+        )
+        self.cart.heading("Nama", text="Nama")
         self.cart.heading("Jumlah", text="Jumlah")
         self.cart.heading("Subtotal", text="Subtotal")
+
+        self.cart.column("Nama", width=150)
+        self.cart.column("Jumlah", width=70)
+        self.cart.column("Subtotal", width=100)
+
         self.cart.pack(fill=tk.BOTH, expand=True)
 
         tk.Button(frame_right, text="Checkout", command=self.checkout).pack(pady=10)
 
     def load_menu(self):
-        data = get_menu_items()
+        data = get_menu_items()  
+        # format item: (id, nama, kategori, harga, stok, foto)
+
         for item in data:
-            self.menu_list.insert("", tk.END, iid=item[0], values=(item[3], item[4]))
+            item_id = item[0]
+            nama = item[1]
+            harga = item[3]
+            stok = item[4]
+
+            self.menu_list.insert("", tk.END, iid=item_id, values=(nama, harga, stok))
 
     def add_item(self):
         selected = self.menu_list.focus()
         if not selected:
             show_error("Pilih item terlebih dahulu!")
             return
-        harga = int(self.menu_list.item(selected, "values")[0])
-        self.cart.insert("", tk.END, iid=selected, values=(1, harga))
+        
+        nama, harga, stok = self.menu_list.item(selected, "values")
+        harga = int(harga)
+
+        # Masukkan ke keranjang
+        self.cart.insert("", tk.END, iid=selected, values=(nama, 1, harga))
 
     def remove_item(self):
         selected = self.cart.focus()
-        if not selected:
-            return
-        self.cart.delete(selected)
+        if selected:
+            self.cart.delete(selected)
 
     def checkout(self):
         total = 0
+
         for iid in self.cart.get_children():
-            subtotal = int(self.cart.item(iid, "values")[1])
+            subtotal = int(self.cart.item(iid, "values")[2])
             total += subtotal
+
         show_info(f"Total pembayaran: {total}")

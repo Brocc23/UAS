@@ -63,6 +63,7 @@ def load_menu(self):
     data = self.menu_model.get_all_menu()
 
     for item in data:
+
         self.menu_list.insert("", "end", values=item[1:5])
 
 
