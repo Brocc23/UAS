@@ -22,7 +22,6 @@ class KasirWindow:
         lbl = tk.Label(frame_left, text="Menu Items", font=("Arial", 14))
         lbl.pack()
 
-        # ==== Tambahkan kolom NAMA ====
         self.menu_list = ttk.Treeview(
             frame_left,
             columns=("Nama", "Harga", "Stok"),
@@ -52,7 +51,6 @@ class KasirWindow:
         lbl2 = tk.Label(frame_right, text="Keranjang", font=("Arial", 14))
         lbl2.pack()
 
-        # ==== Tambahkan kolom NAMA juga di cart ====
         self.cart = ttk.Treeview(
             frame_right,
             columns=("Nama", "Jumlah", "Subtotal"),
@@ -73,7 +71,6 @@ class KasirWindow:
 
     def load_menu(self):
         data = get_menu_items()  
-        # format item: (id, nama, kategori, harga, stok, foto)
 
         for item in data:
             item_id = item[0]
@@ -92,7 +89,6 @@ class KasirWindow:
         nama, harga, stok = self.menu_list.item(selected, "values")
         harga = int(harga)
 
-        # Masukkan ke keranjang
         self.cart.insert("", tk.END, iid=selected, values=(nama, 1, harga))
 
     def remove_item(self):

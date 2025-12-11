@@ -17,7 +17,6 @@ class PembeliWindow:
         title = ttk.Label(frame, text="Menu Pembeli", font=("Poppins", 18, "bold"))
         title.pack(pady=10)
 
-        # ─────── Tambahkan kolom NAMA MENU ───────
         self.tree = ttk.Treeview(
             frame,
             columns=("Nama", "Kategori", "Harga", "Stok"),
@@ -52,7 +51,6 @@ class PembeliWindow:
 
         data = self.menu_model.get_all_menu()
 
-        # data format harus sesuai menu_model.py (id, nama, kategori, harga, stok, foto)
         for m in data:
             self.tree.insert("", "end", values=(m[1], m[2], m[3], m[4]))
 
