@@ -2,19 +2,48 @@ from cafe_app.database import get_db
 from datetime import datetime
 
 class OrderModel:
-    def create_order(meja_id, user_id):
+    def __init__(self):
+        self.items = [] 
+
+    def add_item(self, nama, harga, jumlah, menu_id=None):
+        for item in self.items:
+            if item["nama"] == nama:
+                item["jumlah"] += jumlah
+                item["subtotal"] = item["jumlah"] * item["harga"]
+                return
+
+        self.items.append({
+            "nama": nama,
+            "menu_id": menu_id,
+            "harga": harga,
+            "jumlah": jumlah,
+            "subtotal": harga * jumlah
+        })
+
+    def remove_item(self, nama):
+        self.items = [item for item in self.items if item["nama"] != nama]
+
+    def get_total(self):
+        return sum(item["subtotal"] for item in self.items)
+
+    def reset(self):
+        self.items = []
+
+    @staticmethod
+    def create_order(meja_id, metode_pembayaran="", status="pending"):
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO transaksi (tanggal, total, metode_pembayaran, meja_id, status) VALUES (?, ?, ?, ?, ?)",
-            (datetime.now(), 0, "", meja_id, "pending")
+            (datetime.now(), 0, metode_pembayaran, meja_id, status)
         )
         transaksi_id = cur.lastrowid
         conn.commit()
         conn.close()
         return transaksi_id
 
-    def add_item(transaksi_id, menu_id, jumlah, subtotal, diskon=0):
+    @staticmethod
+    def add_item_db(transaksi_id, menu_id, jumlah, subtotal, diskon=0):
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
@@ -24,23 +53,7 @@ class OrderModel:
         conn.commit()
         conn.close()
 
-    def update_item(detail_id, jumlah, subtotal):
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE detail_transaksi SET jumlah=?, subtotal=? WHERE id=?",
-            (jumlah, subtotal, detail_id)
-        )
-        conn.commit()
-        conn.close()
-
-    def remove_item(detail_id):
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM detail_transaksi WHERE id=?", (detail_id,))
-        conn.commit()
-        conn.close()
-
+    @staticmethod
     def get_order_items(transaksi_id):
         conn = get_db()
         cur = conn.cursor()
@@ -54,6 +67,7 @@ class OrderModel:
         conn.close()
         return items
 
+    @staticmethod
     def update_total(transaksi_id):
         conn = get_db()
         cur = conn.cursor()
@@ -70,6 +84,7 @@ class OrderModel:
         conn.close()
         return total
 
+    @staticmethod
     def set_order_status(transaksi_id, status):
         conn = get_db()
         cur = conn.cursor()
@@ -80,12 +95,11 @@ class OrderModel:
         conn.commit()
         conn.close()
 
+    @staticmethod
     def get_pending_orders():
         conn = get_db()
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, meja_id, total, status FROM transaksi WHERE status='pending'"
-        )
+        cur.execute("SELECT id, meja_id, total, status FROM transaksi WHERE status='pending'")
         rows = cur.fetchall()
         conn.close()
         return rows
