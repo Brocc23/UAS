@@ -1,7 +1,3 @@
-# CATATAN PENTING
-# File ini HANYA memperbagus tampilan UI
-# TIDAK mengubah fungsi, alur, maupun pemanggilan window lain
-
 import tkinter as tk
 from tkinter import ttk
 from cafe_app.ui.admin_window import AdminWindow
