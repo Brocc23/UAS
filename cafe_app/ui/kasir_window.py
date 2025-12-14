@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
-import uuid
+import qrcode
+from PIL import Image, ImageTk
 
-from cafe_app.database import get_menu_items
-from cafe_app.utils import show_info, show_error
+from cafe_app.utils import show_error
 
 
 class KasirWindow:
@@ -13,97 +13,102 @@ class KasirWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Kasir - Café App")
-        self.window.geometry("950x520")
+        self.window.geometry("700x980")
         self.window.resizable(False, False)
-        self.window.configure(bg="#f5f6fa")
 
         self.metode = tk.StringVar(value="QRIS")
+        self.total_var = tk.StringVar()
 
         self.build_ui()
-        self.load_menu()
 
     def build_ui(self):
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("Treeview", rowheight=28)
-        style.configure("Header.TLabel", font=("Poppins", 16, "bold"))
-        style.configure("Section.TLabelframe", padding=10)
+        main = ttk.Frame(self.window, padding=20)
+        main.pack(fill="both", expand=True)
 
-        main = tk.Frame(self.window, bg="#f5f6fa")
-        main.pack(fill="both", expand=True, padx=12, pady=12)
+        # ===== TITLE =====
+        ttk.Label(
+            main,
+            text="Kasir Manual",
+            font=("Poppins", 16, "bold")
+        ).pack(pady=10)
 
-        # ===== LEFT =====
-        frame_left = ttk.LabelFrame(main, text="Daftar Menu")
-        frame_left.pack(side=tk.LEFT, fill=tk.Y)
+        # ===== TOTAL =====
+        ttk.Label(main, text="Total Harga").pack(anchor="w")
+        ttk.Entry(main, textvariable=self.total_var).pack(fill="x", pady=5)
 
-        self.menu_list = ttk.Treeview(
-            frame_left,
-            columns=("Nama", "Harga", "Stok"),
-            show="headings",
-            height=18
-        )
-        self.menu_list.heading("Nama", text="Nama")
-        self.menu_list.heading("Harga", text="Harga")
-        self.menu_list.heading("Stok", text="Stok")
-        self.menu_list.pack()
+        # ===== METODE =====
+        ttk.Label(main, text="Metode Pembayaran").pack(anchor="w", pady=(15, 5))
 
-        # ===== MIDDLE =====
-        frame_mid = ttk.Frame(main)
-        frame_mid.pack(side=tk.LEFT, padx=15)
+        ttk.Radiobutton(
+            main, text="QRIS", variable=self.metode, value="QRIS"
+        ).pack(anchor="w")
 
-        ttk.Button(frame_mid, text="Tambah ▶", command=self.add_item).pack(pady=10)
-        ttk.Button(frame_mid, text="◀ Hapus", command=self.remove_item).pack(pady=10)
+        ttk.Radiobutton(
+            main, text="Tunai", variable=self.metode, value="TUNAI"
+        ).pack(anchor="w")
 
-        # ===== RIGHT =====
-        frame_right = ttk.LabelFrame(main, text="Keranjang")
-        frame_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # ===== BUTTON =====
+        ttk.Button(
+            main,
+            text="Proses Pembayaran",
+            command=self.proses_pembayaran
+        ).pack(pady=20)
 
-        self.cart = ttk.Treeview(
-            frame_right,
-            columns=("Nama", "Jumlah", "Subtotal"),
-            show="headings",
-            height=14
-        )
-        self.cart.heading("Nama", text="Nama")
-        self.cart.heading("Jumlah", text="Jumlah")
-        self.cart.heading("Subtotal", text="Subtotal")
-        self.cart.pack(fill=tk.BOTH, expand=True)
+        # ===== RESULT =====
+        self.result_frame = ttk.Frame(main)
+        self.result_frame.pack()
 
-        ttk.Button(frame_right, text="Checkout", command=self.checkout).pack(pady=12)
+    def proses_pembayaran(self):
+        # clear result
+        for w in self.result_frame.winfo_children():
+            w.destroy()
 
-    def load_menu(self):
-        for i in self.menu_list.get_children():
-            self.menu_list.delete(i)
-
-        data = get_menu_items()
-        for item in data:
-            menu_id = item[0]
-            nama = item[1]
-            harga = item[3]
-            stok = item[4]
-            self.menu_list.insert("", tk.END, iid=str(menu_id), values=(nama, harga, stok))
-
-    def add_item(self):
-        selected = self.menu_list.focus()
-        if not selected:
-            show_error("Pilih item terlebih dahulu!")
+        total = self.total_var.get()
+        if not total.isdigit():
+            show_error("Total harus berupa angka")
             return
 
-        nama, harga, stok = self.menu_list.item(selected, "values")
-        harga = int(harga)
+        total = int(total)
 
-        iid_cart = str(uuid.uuid4())
-        self.cart.insert("", tk.END, iid=iid_cart, values=(nama, 1, harga))
+        if self.metode.get() == "QRIS":
+            self.show_qris(total)
+        else:
+            self.show_tunai(total)
 
-    def remove_item(self):
-        selected = self.cart.focus()
-        if selected:
-            self.cart.delete(selected)
+    def show_qris(self, total):
+        ttk.Label(
+            self.result_frame,
+            text="Scan QRIS",
+            font=("Poppins", 12, "bold")
+        ).pack(pady=5)
 
-    def checkout(self):
-        total = 0
-        for iid in self.cart.get_children():
-            subtotal = int(self.cart.item(iid, "values")[2])
-            total += subtotal
+        # ===== QR CODE REAL =====
+        qr_data = f"PAYMENT|QRIS|TOTAL={total}"
+        qr_img = qrcode.make(qr_data)
+        qr_img = qr_img.resize((200, 200))
 
-        show_info(f"Total pembayaran: {total}")
+        self.qr_photo = ImageTk.PhotoImage(qr_img)
+
+        ttk.Label(
+            self.result_frame,
+            image=self.qr_photo
+        ).pack(pady=10)
+
+        ttk.Label(
+            self.result_frame,
+            text=f"Rp {total:,}",
+            font=("Poppins", 11)
+        ).pack()
+
+    def show_tunai(self, total):
+        ttk.Label(
+            self.result_frame,
+            text="Pembayaran Tunai",
+            font=("Poppins", 12, "bold")
+        ).pack(pady=10)
+
+        ttk.Label(
+            self.result_frame,
+            text=f"Rp {total:,}",
+            font=("Poppins", 11)
+        ).pack()
