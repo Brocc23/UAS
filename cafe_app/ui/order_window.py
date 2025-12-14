@@ -103,8 +103,12 @@ class OrderWindow:
     def load_menu(self):
         self.menu_list.delete(*self.menu_list.get_children())
         data = self.menu_model.get_all_menu()
-        for item in data:
-            self.menu_list.insert("", "end", values=item)
+
+        for m in data:
+            self.menu_list.insert(
+                "", "end",
+                values=(m[1], m[2], m[3], m[4])  
+            )
 
     def load_order_table(self):
         self.order_table.delete(*self.order_table.get_children())
@@ -117,11 +121,12 @@ class OrderWindow:
         pilih = self.menu_list.focus()
         if not pilih:
             return
-        data = self.menu_list.item(pilih)["values"]
-        nama, kategori, harga, stok = data
+        nama, kategori, harga, stok = self.menu_list.item(pilih)["values"]
         jumlah = self.jumlah_var.get()
+
         if jumlah <= 0:
             return
+
         self.order.add_item(nama, harga, jumlah)
         self.load_order_table()
 
@@ -129,6 +134,7 @@ class OrderWindow:
         pilih = self.order_table.focus()
         if not pilih:
             return
+
         nama = self.order_table.item(pilih)["values"][0]
         self.order.remove_item(nama)
         self.load_order_table()
