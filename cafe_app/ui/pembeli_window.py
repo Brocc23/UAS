@@ -12,7 +12,6 @@ class PembeliWindow:
         self.root = root
         self.user = user
 
-        # ❗ PENTING: pakai Toplevel, BUKAN root langsung
         self.window = tk.Toplevel(root)
         self.window.title("Pemesanan - Pembeli")
         self.window.state("zoomed")

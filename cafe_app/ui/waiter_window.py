@@ -19,7 +19,7 @@ class WaiterWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Waiter Panel")
-        self.window.geometry("650x480")
+        self.window.state("zoomed")
         self.window.resizable(False, False)
 
         # ===== Container utama =====
