@@ -11,18 +11,39 @@ from cafe_app.ui.owner_window import OwnerWindow
 class LoginWindow:
     def __init__(self, root):
         self.root = root
-        self.frame = tk.Frame(root)
+        self.root.title("Login - Café App")
+        self.root.geometry("380x260")
+        self.root.resizable(False, False)
+        self.root.configure(bg="#f5f6fa")
+
+        # ===== STYLE (UI ONLY) =====
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Title.TLabel", font=("Poppins", 16, "bold"))
+        style.configure("Form.TFrame", background="#f5f6fa")
+        style.configure("TButton", padding=6)
+
+        self.frame = ttk.Frame(root, style="Form.TFrame")
         self.frame.pack(expand=True)
 
-        tk.Label(self.frame, text="Username").grid(row=0, column=0, pady=5)
-        self.username_entry = tk.Entry(self.frame)
-        self.username_entry.grid(row=0, column=1, pady=5)
+        ttk.Label(self.frame, text="Café App Login", style="Title.TLabel").grid(
+            row=0, column=0, columnspan=2, pady=(0, 15)
+        )
 
-        tk.Label(self.frame, text="Password").grid(row=1, column=0, pady=5)
-        self.password_entry = tk.Entry(self.frame, show="*")
-        self.password_entry.grid(row=1, column=1, pady=5)
+        ttk.Label(self.frame, text="Username").grid(row=1, column=0, sticky="w", pady=5)
+        self.username_entry = ttk.Entry(self.frame, width=28)
+        self.username_entry.grid(row=1, column=1, pady=5)
 
-        ttk.Button(self.frame, text="Login", command=self.do_login).grid(row=2, column=0, columnspan=2, pady=10)
+        ttk.Label(self.frame, text="Password").grid(row=2, column=0, sticky="w", pady=5)
+        self.password_entry = ttk.Entry(self.frame, show="*", width=28)
+        self.password_entry.grid(row=2, column=1, pady=5)
+
+        ttk.Button(
+            self.frame,
+            text="Login",
+            command=self.do_login,
+            width=20
+        ).grid(row=3, column=0, columnspan=2, pady=15)
 
     def do_login(self):
         username = self.username_entry.get()
@@ -33,7 +54,6 @@ class LoginWindow:
             show_error("Username atau password salah")
             return
 
-        # user = (id, username, role)
         user = {
             "id": user[0],
             "username": user[1],
@@ -56,4 +76,3 @@ class LoginWindow:
             show_error("Role tidak dikenal")
 
         self.frame.destroy()
-

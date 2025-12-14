@@ -8,30 +8,68 @@ class PaymentWindow:
     def __init__(self, master, total, meja_id=None):
         self.master = master
         self.master.title("Pembayaran")
-        self.master.geometry("450x400")
+        self.master.geometry("450x420")
+        self.master.resizable(False, False)
 
         self.total = total
         self.meja_id = meja_id
         self.payment = PaymentModel()
 
-        frame = ttk.Frame(master, padding=15)
-        frame.pack(fill="both", expand=True)
+        # ===== Container utama =====
+        container = ttk.Frame(master, padding=20)
+        container.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text=f"Total Tagihan: Rp{total:,}", font=("Poppins", 16, "bold")).pack(pady=10)
+        # ===== Judul =====
+        ttk.Label(
+            container,
+            text="Pembayaran",
+            font=("Poppins", 18, "bold")
+        ).pack(pady=(0, 5))
 
-        ttk.Label(frame, text="Pilih Metode Pembayaran:", font=("Poppins", 12)).pack(pady=5)
+        ttk.Label(
+            container,
+            text=f"Total Tagihan: Rp{total:,}",
+            font=("Poppins", 14)
+        ).pack(pady=(0, 15))
+
+        ttk.Separator(container).pack(fill="x", pady=10)
+
+        # ===== Metode pembayaran =====
+        ttk.Label(
+            container,
+            text="Metode Pembayaran",
+            font=("Poppins", 12, "bold")
+        ).pack(anchor="w", pady=(5, 3))
 
         self.metode_var = tk.StringVar()
-        metode_box = ttk.Combobox(frame, textvariable=self.metode_var, state="readonly",
-                                  values=["Cash", "E-Wallet", "QRIS"])
+        metode_box = ttk.Combobox(
+            container,
+            textvariable=self.metode_var,
+            state="readonly",
+            values=["Cash", "E-Wallet", "QRIS"],
+            width=30
+        )
         metode_box.pack(pady=5)
         metode_box.bind("<<ComboboxSelected>>", self.show_detail)
 
-        self.detail_frame = ttk.Frame(frame)
-        self.detail_frame.pack(pady=10)
+        # ===== Card detail =====
+        self.detail_frame = ttk.Frame(container, padding=10, relief="groove")
+        self.detail_frame.pack(fill="x", pady=15)
 
-        self.pay_btn = ttk.Button(frame, text="Bayar Sekarang", command=self.process_payment)
-        self.pay_btn.pack(pady=12)
+        ttk.Label(
+            self.detail_frame,
+            text="Silakan pilih metode pembayaran",
+            font=("Poppins", 11),
+            foreground="gray"
+        ).pack()
+
+        # ===== Tombol bayar =====
+        self.pay_btn = ttk.Button(
+            container,
+            text="Bayar Sekarang",
+            command=self.process_payment
+        )
+        self.pay_btn.pack(fill="x", pady=10)
 
         self.qr_image = None
 
@@ -44,19 +82,36 @@ class PaymentWindow:
         metode = self.metode_var.get()
 
         if metode == "Cash":
-            ttk.Label(self.detail_frame, text="Bayar di kasir.", font=("Poppins", 12)).pack()
+            ttk.Label(
+                self.detail_frame,
+                text="Bayar langsung di kasir.",
+                font=("Poppins", 12)
+            ).pack(pady=5)
 
         elif metode == "E-Wallet":
-            ttk.Label(self.detail_frame, text="Masukkan nomor E-Wallet:", font=("Poppins", 12)).pack(pady=3)
+            ttk.Label(
+                self.detail_frame,
+                text="Nomor E-Wallet",
+                font=("Poppins", 11)
+            ).pack(anchor="w", pady=(0, 3))
+
             self.nomor_ewallet = tk.StringVar()
-            ttk.Entry(self.detail_frame, textvariable=self.nomor_ewallet).pack()
+            ttk.Entry(
+                self.detail_frame,
+                textvariable=self.nomor_ewallet,
+                width=30
+            ).pack()
 
         elif metode == "QRIS":
             try:
                 self.qr_image = PhotoImage(file="assets/images/qris.png")
-                ttk.Label(self.detail_frame, image=self.qr_image).pack()
+                ttk.Label(self.detail_frame, image=self.qr_image).pack(pady=5)
             except:
-                ttk.Label(self.detail_frame, text="[QRIS IMAGE NOT FOUND]").pack()
+                ttk.Label(
+                    self.detail_frame,
+                    text="[QRIS IMAGE NOT FOUND]",
+                    foreground="red"
+                ).pack()
 
     def process_payment(self):
         metode = self.metode_var.get()

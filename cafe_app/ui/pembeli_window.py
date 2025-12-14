@@ -3,24 +3,44 @@ from tkinter import ttk
 from cafe_app.logika.menu_model import MenuModel
 from cafe_app.ui.order_window import OrderWindow
 
+
 class PembeliWindow:
     def __init__(self, master, user):
         self.master = master
         self.user = user
 
         self.master.title("Halaman Pembeli")
-        self.master.geometry("600x450")
+        self.master.geometry("650x480")
+        self.master.resizable(False, False)
 
         self.menu_model = MenuModel()
 
-        frame = ttk.Frame(master, padding=20)
-        frame.pack(fill="both", expand=True)
+        # ===== Container =====
+        container = ttk.Frame(master, padding=20)
+        container.pack(fill="both", expand=True)
 
-        title = ttk.Label(frame, text="Menu Pembeli", font=("Poppins", 18, "bold"))
-        title.pack(pady=10)
+        # ===== Judul =====
+        ttk.Label(
+            container,
+            text="Daftar Menu",
+            font=("Poppins", 18, "bold")
+        ).pack(pady=(0, 5))
+
+        ttk.Label(
+            container,
+            text="Silakan pilih menu untuk dipesan",
+            font=("Poppins", 11),
+            foreground="gray"
+        ).pack(pady=(0, 10))
+
+        ttk.Separator(container).pack(fill="x", pady=10)
+
+        # ===== Table Menu =====
+        table_frame = ttk.Frame(container)
+        table_frame.pack(fill="both", expand=True)
 
         self.tree = ttk.Treeview(
-            frame,
+            table_frame,
             columns=("Nama", "Kategori", "Harga", "Stok"),
             show="headings",
             height=12
@@ -31,19 +51,42 @@ class PembeliWindow:
         self.tree.heading("Harga", text="Harga")
         self.tree.heading("Stok", text="Stok")
 
-        self.tree.column("Nama", width=180)
-        self.tree.column("Kategori", width=120)
-        self.tree.column("Harga", width=80)
-        self.tree.column("Stok", width=60)
+        self.tree.column("Nama", width=200)
+        self.tree.column("Kategori", width=130)
+        self.tree.column("Harga", width=90, anchor="center")
+        self.tree.column("Stok", width=70, anchor="center")
 
-        self.tree.pack(fill="both", expand=True, padx=5, pady=10)
+        self.tree.pack(side="left", fill="both", expand=True)
 
-        btn_frame = ttk.Frame(frame)
-        btn_frame.pack(pady=10)
+        scrollbar = ttk.Scrollbar(
+            table_frame,
+            orient="vertical",
+            command=self.tree.yview
+        )
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
 
-        ttk.Button(btn_frame, text="Pesan", command=self.buka_order).grid(row=0, column=0, padx=5)
-        ttk.Button(btn_frame, text="Refresh", command=self.load_menu).grid(row=0, column=1, padx=5)
-        ttk.Button(btn_frame, text="Logout", command=self.master.destroy).grid(row=0, column=2, padx=5)
+        # ===== Tombol =====
+        btn_frame = ttk.Frame(container)
+        btn_frame.pack(fill="x", pady=15)
+
+        ttk.Button(
+            btn_frame,
+            text="Pesan",
+            command=self.buka_order
+        ).pack(side="left", expand=True, fill="x", padx=5)
+
+        ttk.Button(
+            btn_frame,
+            text="Refresh",
+            command=self.load_menu
+        ).pack(side="left", expand=True, fill="x", padx=5)
+
+        ttk.Button(
+            btn_frame,
+            text="Logout",
+            command=self.master.destroy
+        ).pack(side="left", expand=True, fill="x", padx=5)
 
         self.load_menu()
 
@@ -52,7 +95,6 @@ class PembeliWindow:
             self.tree.delete(row)
 
         data = self.menu_model.get_all_menu()
-
         for m in data:
             self.tree.insert("", "end", values=(m[1], m[2], m[3], m[4]))
 
@@ -60,5 +102,5 @@ class PembeliWindow:
         pilih = self.tree.focus()
         if not pilih:
             return
-
+        
         OrderWindow(tk.Toplevel(self.master))

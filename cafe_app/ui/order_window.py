@@ -7,7 +7,8 @@ class OrderWindow:
     def __init__(self, master, meja_id=None, pembeli_nama=None):
         self.master = master
         self.master.title("Pemesanan Menu")
-        self.master.geometry("650x450")
+        self.master.geometry("720x520")
+        self.master.configure(bg="#f5f6fa")
 
         self.meja_id = meja_id
         self.pembeli_nama = pembeli_nama
@@ -15,12 +16,23 @@ class OrderWindow:
         self.order = OrderModel()
         self.menu_model = MenuModel()
 
-        frame = ttk.Frame(master, padding=10)
-        frame.pack(fill="both", expand=True)
+        # ===== STYLE (UI ONLY) =====
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", rowheight=28)
+        style.configure("Header.TLabel", font=("Poppins", 16, "bold"))
+        style.configure("Section.TLabelframe", padding=10)
 
-        ttk.Label(frame, text="Pilih Menu", font=("Poppins", 16, "bold")).pack()
+        container = ttk.Frame(master, padding=12)
+        container.pack(fill="both", expand=True)
 
-        list_frame = ttk.Frame(frame)
+        ttk.Label(container, text="Pemesanan Menu", style="Header.TLabel").pack(pady=(0, 10))
+
+        # ===== MENU LIST =====
+        menu_box = ttk.LabelFrame(container, text="Daftar Menu", style="Section.TLabelframe")
+        menu_box.pack(fill="both", expand=True)
+
+        list_frame = ttk.Frame(menu_box)
         list_frame.pack(fill="both", expand=True)
 
         self.menu_list = ttk.Treeview(
@@ -33,26 +45,57 @@ class OrderWindow:
         self.menu_list.heading("kategori", text="Kategori")
         self.menu_list.heading("harga", text="Harga")
         self.menu_list.heading("stok", text="Stok")
+
+        self.menu_list.column("nama", width=180, anchor="w")
+        self.menu_list.column("kategori", width=120, anchor="center")
+        self.menu_list.column("harga", width=100, anchor="center")
+        self.menu_list.column("stok", width=80, anchor="center")
+
         self.menu_list.pack(side="left", fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.menu_list.yview)
         self.menu_list.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
 
-        input_frame = ttk.Frame(frame)
-        input_frame.pack(pady=10)
+        # ===== INPUT =====
+        input_box = ttk.LabelFrame(container, text="Tambah Pesanan", style="Section.TLabelframe")
+        input_box.pack(fill="x", pady=10)
 
-        ttk.Label(input_frame, text="Jumlah").grid(row=0, column=0, padx=5)
+        ttk.Label(input_box, text="Jumlah").grid(row=0, column=0, padx=5, pady=5)
         self.jumlah_var = tk.IntVar(value=1)
-        ttk.Entry(input_frame, textvariable=self.jumlah_var, width=10).grid(row=0, column=1, padx=5)
+        ttk.Entry(input_box, textvariable=self.jumlah_var, width=10).grid(row=0, column=1, padx=5, pady=5)
 
-        ttk.Button(input_frame, text="Tambah", width=15, command=self.tambah).grid(row=0, column=2, padx=5)
-        ttk.Button(input_frame, text="Hapus Item", width=15, command=self.hapus).grid(row=0, column=3, padx=5)
+        ttk.Button(input_box, text="Tambah", width=15, command=self.tambah).grid(row=0, column=2, padx=8)
+        ttk.Button(input_box, text="Hapus Item", width=15, command=self.hapus).grid(row=0, column=3, padx=8)
 
-        self.total_label = ttk.Label(frame, text="Total: Rp0", font=("Poppins", 14))
-        self.total_label.pack(pady=10)
+        # ===== ORDER LIST =====
+        order_box = ttk.LabelFrame(container, text="Pesanan", style="Section.TLabelframe")
+        order_box.pack(fill="x")
 
-        ttk.Button(frame, text="Selesaikan Pesanan", width=30, command=self.selesai).pack(pady=5)
+        self.order_table = ttk.Treeview(
+            order_box,
+            columns=("nama", "jumlah", "harga"),
+            show="headings",
+            height=6
+        )
+        self.order_table.heading("nama", text="Menu")
+        self.order_table.heading("jumlah", text="Jumlah")
+        self.order_table.heading("harga", text="Subtotal")
+
+        self.order_table.column("nama", width=200, anchor="w")
+        self.order_table.column("jumlah", width=80, anchor="center")
+        self.order_table.column("harga", width=120, anchor="center")
+
+        self.order_table.pack(fill="x")
+
+        # ===== TOTAL & ACTION =====
+        bottom = ttk.Frame(container)
+        bottom.pack(fill="x", pady=10)
+
+        self.total_label = ttk.Label(bottom, text="Total: Rp0", font=("Poppins", 14, "bold"))
+        self.total_label.pack(side="left", padx=5)
+
+        ttk.Button(bottom, text="Selesaikan Pesanan", width=25, command=self.selesai).pack(side="right", padx=5)
 
         self.load_menu()
         self.load_order_table()
@@ -64,25 +107,10 @@ class OrderWindow:
             self.menu_list.insert("", "end", values=item)
 
     def load_order_table(self):
-        if hasattr(self, "order_table"):
-            self.order_table.destroy()
-
-        self.order_table = ttk.Treeview(
-            self.master,
-            columns=("nama", "jumlah", "harga"),
-            show="headings",
-            height=5
-        )
-        self.order_table.heading("nama", text="Menu")
-        self.order_table.heading("jumlah", text="Jumlah")
-        self.order_table.heading("harga", text="Subtotal")
-        self.order_table.pack(pady=5)
-
         self.order_table.delete(*self.order_table.get_children())
         for item in self.order.items:
             self.order_table.insert("", "end",
                                     values=(item["nama"], item["jumlah"], item["subtotal"]))
-
         self.total_label.config(text=f"Total: Rp{self.order.get_total():,}")
 
     def tambah(self):

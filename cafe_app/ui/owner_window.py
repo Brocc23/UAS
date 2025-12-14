@@ -1,4 +1,9 @@
+# CATATAN PENTING
+# File ini HANYA memperbagus tampilan UI
+# TIDAK mengubah fungsi, alur, maupun pemanggilan window lain
+
 import tkinter as tk
+from tkinter import ttk
 from cafe_app.ui.admin_window import AdminWindow
 from cafe_app.ui.report_window import ReportWindow
 
@@ -9,38 +14,59 @@ class OwnerWindow:
 
         self.window = tk.Toplevel(master)
         self.window.title("Owner Panel")
-        self.window.geometry("400x300")
+        self.window.geometry("420x320")
+        self.window.resizable(False, False)
+        self.window.configure(bg="#f5f6fa")
 
-        tk.Label(
-            self.window,
-            text=f"Owner: {self.user['username']}",
-            font=("Arial", 14, "bold")
-        ).pack(pady=15)
+        # ===== STYLE (UI ONLY) =====
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Title.TLabel", font=("Poppins", 16, "bold"))
+        style.configure("Sub.TLabel", font=("Poppins", 11))
+        style.configure("Action.TButton", padding=8)
 
-        tk.Button(
-            self.window,
+        container = ttk.Frame(self.window, padding=20)
+        container.pack(expand=True, fill="both")
+
+        ttk.Label(
+            container,
+            text="Owner Panel",
+            style="Title.TLabel"
+        ).pack(pady=(0, 5))
+
+        ttk.Label(
+            container,
+            text=f"Login sebagai: {self.user['username']}",
+            style="Sub.TLabel"
+        ).pack(pady=(0, 20))
+
+        btn_frame = ttk.Frame(container)
+        btn_frame.pack(fill="x")
+
+        ttk.Button(
+            btn_frame,
             text="Buka Admin Panel",
-            width=25,
+            style="Action.TButton",
             command=self.open_admin
-        ).pack(pady=10)
+        ).pack(fill="x", pady=6)
 
-        tk.Button(
-            self.window,
+        ttk.Button(
+            btn_frame,
             text="Lihat Laporan",
-            width=25,
+            style="Action.TButton",
             command=self.open_report
-        ).pack(pady=10)
+        ).pack(fill="x", pady=6)
 
-        tk.Button(
-            self.window,
+        ttk.Separator(container).pack(fill="x", pady=15)
+
+        ttk.Button(
+            container,
             text="Logout",
-            width=25,
             command=self.window.destroy
-        ).pack(pady=20)
+        ).pack(fill="x")
 
     def open_admin(self):
         AdminWindow(self.master, self.user)
 
     def open_report(self):
-
         ReportWindow(self.master)
