@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
+from PIL import Image, ImageTk
+import os
 from cafe_app.utils import show_info
 from cafe_app.logika.menu_model import MenuModel
 from cafe_app.logika.user_model import UserModel
@@ -13,6 +15,7 @@ class AdminWindow:
         self.selected_menu_id = None
         self.selected_user_id = None
         self.foto_menu_path = ""
+        self.menu_image = None
 
         self.window = tk.Toplevel(root)
         self.window.title("Admin Dashboard")
@@ -26,16 +29,11 @@ class AdminWindow:
         style.configure("Header.TLabel", font=("Poppins", 18, "bold"))
         style.configure("Section.TLabelframe", padding=10)
 
-        ttk.Label(
-            self.window,
-            text="Dashboard Admin",
-            style="Header.TLabel"
-        ).pack(pady=12)
+        ttk.Label(self.window, text="Dashboard Admin", style="Header.TLabel").pack(pady=10)
 
         notebook = ttk.Notebook(self.window)
         notebook.pack(expand=True, fill="both", padx=15, pady=10)
 
-        # ❗ LAPORAN DIHAPUS
         self.tab_menu = ttk.Frame(notebook)
         self.tab_user = ttk.Frame(notebook)
 
@@ -45,55 +43,86 @@ class AdminWindow:
         self.build_menu_tab()
         self.build_user_tab()
 
-    # ================= MENU TAB =================
     def build_menu_tab(self):
-        form = ttk.LabelFrame(self.tab_menu, text="Menu", style="Section.TLabelframe")
-        form.pack(fill="x", padx=10, pady=10)
+        form = ttk.LabelFrame(self.tab_menu, text="Menu")
+        form.pack(fill="x", padx=10, pady=6)
 
         labels = ["Nama Menu", "Kategori", "Harga", "Stok"]
-        for i, text in enumerate(labels):
-            ttk.Label(form, text=text).grid(row=i, column=0, sticky="w", padx=5, pady=6)
+        for i, t in enumerate(labels):
+            ttk.Label(form, text=t).grid(row=i, column=0, sticky="w", padx=5, pady=4)
 
         self.nama_menu = ttk.Entry(form, width=32)
         self.kategori_menu = ttk.Entry(form, width=32)
         self.harga_menu = ttk.Entry(form, width=32)
         self.stok_menu = ttk.Entry(form, width=32)
 
-        for i, ent in enumerate(
-            [self.nama_menu, self.kategori_menu, self.harga_menu, self.stok_menu]
-        ):
-            ent.grid(row=i, column=1, padx=5, pady=6)
+        for i, e in enumerate([self.nama_menu, self.kategori_menu, self.harga_menu, self.stok_menu]):
+            e.grid(row=i, column=1, padx=5, pady=4)
 
         btn_row = ttk.Frame(form)
         btn_row.grid(row=0, column=2, rowspan=4, padx=15)
 
-        ttk.Button(btn_row, text="Upload Foto", command=self.upload_foto).pack(fill="x", pady=5)
-        ttk.Button(btn_row, text="Tambah Menu", command=self.add_menu).pack(fill="x", pady=5)
+        ttk.Button(btn_row, text="Upload Foto", command=self.upload_foto).pack(fill="x", pady=4)
+        ttk.Button(btn_row, text="Tambah Menu", command=self.add_menu).pack(fill="x", pady=4)
 
-        table_box = ttk.LabelFrame(self.tab_menu, text="Daftar Menu", style="Section.TLabelframe")
-        table_box.pack(expand=True, fill="both", padx=10, pady=10)
+        preview_box = ttk.LabelFrame(self.tab_menu, text="Preview Foto Menu")
+        preview_box.pack(fill="x", padx=10, pady=6)
+        preview_box.configure(height=170)
+        preview_box.pack_propagate(False)
 
-        cols = ("id", "nama", "kategori", "harga", "stok")
-        self.menu_table = ttk.Treeview(table_box, columns=cols, show="headings")
+        self.preview_label = ttk.Label(preview_box, text="No Image", anchor="center")
+        self.preview_label.pack(expand=True)
+
+        table_box = ttk.LabelFrame(self.tab_menu, text="Daftar Menu")
+        table_box.pack(fill="x", padx=10, pady=6)
+        table_box.configure(height=280)
+        table_box.pack_propagate(False)
+
+        table_frame = ttk.Frame(table_box)
+        table_frame.pack(expand=True, fill="both")
+
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical")
+        scrollbar.pack(side="right", fill="y")
+
+        cols = ("id", "nama", "kategori", "harga", "stok", "foto")
+        self.menu_table = ttk.Treeview(
+            table_frame,
+            columns=cols,
+            show="headings",
+            yscrollcommand=scrollbar.set
+        )
         self.menu_table.pack(expand=True, fill="both")
+        scrollbar.config(command=self.menu_table.yview)
 
-        for col in cols:
-            self.menu_table.heading(col, text=col.upper())
-            self.menu_table.column(col, anchor="center")
+        for c in cols:
+            self.menu_table.heading(c, text=c.upper())
+            self.menu_table.column(c, anchor="center")
 
         self.menu_table.bind("<ButtonRelease-1>", self.select_menu)
         self.load_menu()
 
         action = ttk.Frame(self.tab_menu)
-        action.pack(pady=8)
+        action.pack(fill="x", pady=8)
 
-        ttk.Button(action, text="Update Menu", command=self.update_menu).grid(row=0, column=0, padx=6)
-        ttk.Button(action, text="Hapus Menu", command=self.delete_menu).grid(row=0, column=1, padx=6)
+        ttk.Button(action, text="Update Menu", command=self.update_menu).pack(side="left", padx=6)
+        ttk.Button(action, text="Hapus Menu", command=self.delete_menu).pack(side="left", padx=6)
 
     def upload_foto(self):
-        self.foto_menu_path = filedialog.askopenfilename(
-            filetypes=[("Images", "*.jpg;*.png")]
-        )
+        path = filedialog.askopenfilename(filetypes=[("Images", "*.jpg;*.png")])
+        if not path:
+            return
+        self.foto_menu_path = path
+        self.show_preview_foto(path)
+
+    def show_preview_foto(self, path):
+        if not path or not os.path.exists(path):
+            self.preview_label.config(text="No Image", image="")
+            self.menu_image = None
+            return
+        img = Image.open(path)
+        img.thumbnail((150, 150))
+        self.menu_image = ImageTk.PhotoImage(img)
+        self.preview_label.config(image=self.menu_image, text="")
 
     def add_menu(self):
         MenuModel().add_menu(
@@ -108,19 +137,25 @@ class AdminWindow:
 
     def load_menu(self):
         self.menu_table.delete(*self.menu_table.get_children())
-        for row in MenuModel().get_all_menu():
-            self.menu_table.insert("", tk.END, values=row)
+        for r in MenuModel().get_all_menu():
+            self.menu_table.insert("", tk.END, values=r)
 
     def select_menu(self, event):
-        selected = self.menu_table.focus()
-        if not selected:
+        s = self.menu_table.focus()
+        if not s:
             return
-        data = self.menu_table.item(selected)["values"]
-        self.selected_menu_id = data[0]
-        self.nama_menu.delete(0, tk.END); self.nama_menu.insert(0, data[1])
-        self.kategori_menu.delete(0, tk.END); self.kategori_menu.insert(0, data[2])
-        self.harga_menu.delete(0, tk.END); self.harga_menu.insert(0, data[3])
-        self.stok_menu.delete(0, tk.END); self.stok_menu.insert(0, data[4])
+        d = self.menu_table.item(s)["values"]
+        self.selected_menu_id = d[0]
+        self.nama_menu.delete(0, tk.END)
+        self.nama_menu.insert(0, d[1])
+        self.kategori_menu.delete(0, tk.END)
+        self.kategori_menu.insert(0, d[2])
+        self.harga_menu.delete(0, tk.END)
+        self.harga_menu.insert(0, d[3])
+        self.stok_menu.delete(0, tk.END)
+        self.stok_menu.insert(0, d[4])
+        self.foto_menu_path = d[5]
+        self.show_preview_foto(self.foto_menu_path)
 
     def update_menu(self):
         MenuModel().update_menu(
@@ -139,9 +174,8 @@ class AdminWindow:
         show_info("Menu berhasil dihapus.")
         self.load_menu()
 
-    # ================= USER TAB =================
     def build_user_tab(self):
-        form = ttk.LabelFrame(self.tab_user, text="User", style="Section.TLabelframe")
+        form = ttk.LabelFrame(self.tab_user, text="User")
         form.pack(fill="x", padx=10, pady=10)
 
         ttk.Label(form, text="Username").grid(row=0, column=0, sticky="w")
@@ -150,11 +184,7 @@ class AdminWindow:
 
         self.user_username = ttk.Entry(form, width=32)
         self.user_password = ttk.Entry(form, width=32)
-        self.user_role = ttk.Combobox(
-            form,
-            values=["admin", "kasir", "waiter", "pembeli", "owner"],
-            width=29
-        )
+        self.user_role = ttk.Combobox(form, values=["admin", "kasir", "waiter", "pembeli", "owner"], width=29)
 
         self.user_username.grid(row=0, column=1, pady=6)
         self.user_password.grid(row=1, column=1, pady=6)
@@ -162,16 +192,16 @@ class AdminWindow:
 
         ttk.Button(form, text="Tambah User", command=self.add_user).grid(row=3, column=1, sticky="w")
 
-        table_box = ttk.LabelFrame(self.tab_user, text="Daftar User", style="Section.TLabelframe")
+        table_box = ttk.LabelFrame(self.tab_user, text="Daftar User")
         table_box.pack(expand=True, fill="both", padx=10, pady=10)
 
         cols = ("id", "username", "role")
         self.user_table = ttk.Treeview(table_box, columns=cols, show="headings")
         self.user_table.pack(expand=True, fill="both")
 
-        for col in cols:
-            self.user_table.heading(col, text=col.upper())
-            self.user_table.column(col, anchor="center")
+        for c in cols:
+            self.user_table.heading(c, text=c.upper())
+            self.user_table.column(c, anchor="center")
 
         self.user_table.bind("<ButtonRelease-1>", self.select_user)
         self.load_users()
@@ -193,17 +223,18 @@ class AdminWindow:
 
     def load_users(self):
         self.user_table.delete(*self.user_table.get_children())
-        for row in UserModel().get_all_users():
-            self.user_table.insert("", tk.END, values=row)
+        for r in UserModel().get_all_users():
+            self.user_table.insert("", tk.END, values=r)
 
     def select_user(self, event):
-        selected = self.user_table.focus()
-        if not selected:
+        s = self.user_table.focus()
+        if not s:
             return
-        data = self.user_table.item(selected)["values"]
-        self.selected_user_id = data[0]
-        self.user_username.delete(0, tk.END); self.user_username.insert(0, data[1])
-        self.user_role.set(data[2])
+        d = self.user_table.item(s)["values"]
+        self.selected_user_id = d[0]
+        self.user_username.delete(0, tk.END)
+        self.user_username.insert(0, d[1])
+        self.user_role.set(d[2])
 
     def update_user(self):
         UserModel().update_user(

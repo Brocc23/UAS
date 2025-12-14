@@ -15,11 +15,9 @@ class PaymentWindow:
         self.meja_id = meja_id
         self.payment = PaymentModel()
 
-        # ===== Container utama =====
         container = ttk.Frame(master, padding=20)
         container.pack(fill="both", expand=True)
 
-        # ===== Judul =====
         ttk.Label(
             container,
             text="Pembayaran",
@@ -34,7 +32,6 @@ class PaymentWindow:
 
         ttk.Separator(container).pack(fill="x", pady=10)
 
-        # ===== Metode pembayaran =====
         ttk.Label(
             container,
             text="Metode Pembayaran",
@@ -52,7 +49,6 @@ class PaymentWindow:
         metode_box.pack(pady=5)
         metode_box.bind("<<ComboboxSelected>>", self.show_detail)
 
-        # ===== Card detail =====
         self.detail_frame = ttk.Frame(container, padding=10, relief="groove")
         self.detail_frame.pack(fill="x", pady=15)
 
@@ -63,7 +59,6 @@ class PaymentWindow:
             foreground="gray"
         ).pack()
 
-        # ===== Tombol bayar =====
         self.pay_btn = ttk.Button(
             container,
             text="Bayar Sekarang",

@@ -1,11 +1,16 @@
+import sqlite3
 from cafe_app.database import get_db
+
 
 class UserModel:
 
     def get_user_by_username(self, username: str):
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, password, role FROM users WHERE username=?", (username,))
+        cur.execute(
+            "SELECT id, username, password, role FROM users WHERE username=?",
+            (username,)
+        )
         user = cur.fetchone()
         conn.close()
         return user
@@ -13,12 +18,17 @@ class UserModel:
     def register(self, username: str, password: str, role: str):
         conn = get_db()
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            (username, password, role)
-        )
-        conn.commit()
-        conn.close()
+        try:
+            cur.execute(
+                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                (username, password, role)
+            )
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+        finally:
+            conn.close()
 
     def get_all_users(self):
         conn = get_db()

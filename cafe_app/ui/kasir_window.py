@@ -2,9 +2,10 @@ import tkinter as tk
 from tkinter import ttk
 import qrcode
 from PIL import Image, ImageTk
-
+import os
 from cafe_app.utils import show_error
 
+QRIS_PATH = r"cafe_app\assets\images\qris_dummy.png"
 
 class KasirWindow:
     def __init__(self, root, user):
@@ -25,18 +26,15 @@ class KasirWindow:
         main = ttk.Frame(self.window, padding=20)
         main.pack(fill="both", expand=True)
 
-        # ===== TITLE =====
         ttk.Label(
             main,
             text="Kasir Manual",
             font=("Poppins", 16, "bold")
         ).pack(pady=10)
 
-        # ===== TOTAL =====
         ttk.Label(main, text="Total Harga").pack(anchor="w")
         ttk.Entry(main, textvariable=self.total_var).pack(fill="x", pady=5)
 
-        # ===== METODE =====
         ttk.Label(main, text="Metode Pembayaran").pack(anchor="w", pady=(15, 5))
 
         ttk.Radiobutton(
@@ -47,19 +45,16 @@ class KasirWindow:
             main, text="Tunai", variable=self.metode, value="TUNAI"
         ).pack(anchor="w")
 
-        # ===== BUTTON =====
         ttk.Button(
             main,
             text="Proses Pembayaran",
             command=self.proses_pembayaran
         ).pack(pady=20)
 
-        # ===== RESULT =====
         self.result_frame = ttk.Frame(main)
         self.result_frame.pack()
 
     def proses_pembayaran(self):
-        # clear result
         for w in self.result_frame.winfo_children():
             w.destroy()
 
@@ -82,12 +77,14 @@ class KasirWindow:
             font=("Poppins", 12, "bold")
         ).pack(pady=5)
 
-        # ===== QR CODE REAL =====
-        qr_data = f"PAYMENT|QRIS|TOTAL={total}"
-        qr_img = qrcode.make(qr_data)
-        qr_img = qr_img.resize((200, 200))
+        if not os.path.exists(QRIS_PATH):
+            show_error("File QRIS tidak ditemukan")
+            return
 
-        self.qr_photo = ImageTk.PhotoImage(qr_img)
+        img = Image.open(QRIS_PATH)
+        img = img.resize((220, 220))
+
+        self.qr_photo = ImageTk.PhotoImage(img)
 
         ttk.Label(
             self.result_frame,

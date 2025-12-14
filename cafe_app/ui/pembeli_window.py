@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
+import os
 from cafe_app.logika.menu_model import MenuModel
-from cafe_app.logika.order_model import OrderModel
 
 
 class PembeliWindow:
@@ -11,12 +12,12 @@ class PembeliWindow:
         self.window.state("zoomed")
 
         self.menu_model = MenuModel()
-        self.order = OrderModel()
+        self.cart = []
+        self.images = []
 
         container = ttk.Frame(self.window, padding=20)
         container.pack(fill="both", expand=True)
 
-        # ===== HEADER =====
         header = ttk.Label(
             container,
             text="Pemesanan Menu",
@@ -24,47 +25,46 @@ class PembeliWindow:
         )
         header.pack(pady=10)
 
-        # ===== MENU TABLE =====
-        table_frame = ttk.Frame(container)
-        table_frame.pack(fill="both", expand=True)
+        control = ttk.Frame(container)
+        control.pack(fill="x", pady=10)
 
-        self.menu_table = ttk.Treeview(
-            table_frame,
-            columns=("nama", "kategori", "harga"),
-            show="headings"
+        ttk.Label(control, text="Cari").pack(side="left", padx=5)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(control, textvariable=self.search_var, width=30)
+        search_entry.pack(side="left", padx=5)
+        search_entry.bind("<KeyRelease>", lambda e: self.load_menu())
+
+        ttk.Label(control, text="Kategori").pack(side="left", padx=10)
+        self.kategori_var = tk.StringVar(value="Semua")
+        kategori_box = ttk.Combobox(
+            control,
+            textvariable=self.kategori_var,
+            values=["Semua", "Makanan", "Minuman"],
+            width=15,
+            state="readonly"
         )
-        self.menu_table.heading("nama", text="Nama")
-        self.menu_table.heading("kategori", text="Kategori")
-        self.menu_table.heading("harga", text="Harga")
+        kategori_box.pack(side="left")
+        kategori_box.bind("<<ComboboxSelected>>", lambda e: self.load_menu())
 
-        self.menu_table.column("nama", width=300)
-        self.menu_table.column("kategori", width=150, anchor="center")
-        self.menu_table.column("harga", width=120, anchor="center")
+        menu_area = ttk.Frame(container)
+        menu_area.pack(fill="both", expand=True)
 
-        self.menu_table.pack(side="left", fill="both", expand=True)
+        canvas = tk.Canvas(menu_area)
+        scrollbar = ttk.Scrollbar(menu_area, orient="vertical", command=canvas.yview)
+        self.menu_frame = ttk.Frame(canvas)
 
-        scrollbar = ttk.Scrollbar(
-            table_frame, orient="vertical", command=self.menu_table.yview
+        self.menu_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-        self.menu_table.configure(yscrollcommand=scrollbar.set)
+
+        canvas.create_window((0, 0), window=self.menu_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # ===== INPUT =====
-        input_frame = ttk.Frame(container)
-        input_frame.pack(fill="x", pady=10)
-
-        ttk.Label(input_frame, text="Jumlah").pack(side="left", padx=5)
-        self.jumlah_var = tk.IntVar(value=1)
-        ttk.Entry(input_frame, textvariable=self.jumlah_var, width=8).pack(side="left")
-
-        ttk.Button(
-            input_frame,
-            text="Tambah Pesanan",
-            command=self.tambah_item
-        ).pack(side="left", padx=10)
-
-        # ===== ORDER LIST =====
-        order_box = ttk.LabelFrame(container, text="Pesanan")
+        order_box = ttk.LabelFrame(container, text="Keranjang")
         order_box.pack(fill="x", pady=10)
 
         self.order_table = ttk.Treeview(
@@ -76,10 +76,8 @@ class PembeliWindow:
         self.order_table.heading("nama", text="Menu")
         self.order_table.heading("jumlah", text="Jumlah")
         self.order_table.heading("subtotal", text="Subtotal")
-
         self.order_table.pack(fill="x")
 
-        # ===== TOTAL =====
         self.total_label = ttk.Label(
             container,
             text="Total : Rp0",
@@ -87,7 +85,6 @@ class PembeliWindow:
         )
         self.total_label.pack(pady=10)
 
-        # ===== ACTION =====
         ttk.Button(
             container,
             text="Selesaikan Pesanan",
@@ -97,49 +94,97 @@ class PembeliWindow:
 
         self.load_menu()
 
-    # =========================
     def load_menu(self):
-        self.menu_table.delete(*self.menu_table.get_children())
-        for m in self.menu_model.get_all_menu():
-            self.menu_table.insert("", "end", values=(m[1], m[2], m[3]))
+        for w in self.menu_frame.winfo_children():
+            w.destroy()
 
-    def tambah_item(self):
-        pilih = self.menu_table.focus()
-        if not pilih:
-            return
+        self.images.clear()
 
-        nama, kategori, harga = self.menu_table.item(pilih)["values"]
-        jumlah = self.jumlah_var.get()
+        keyword = self.search_var.get()
+        kategori = self.kategori_var.get()
+        if kategori == "Semua":
+            kategori = None
+
+        menus = self.menu_model.search_menu(keyword, kategori)
+
+        for m in menus:
+            card = ttk.Frame(self.menu_frame, padding=10, relief="ridge")
+            card.pack(fill="x", pady=6)
+
+            img_label = ttk.Label(card)
+            img_label.pack(side="left", padx=10)
+
+            if m[5] and os.path.exists(m[5]):
+                img = Image.open(m[5])
+                img = img.resize((100, 100))
+                photo = ImageTk.PhotoImage(img)
+                img_label.config(image=photo)
+                self.images.append(photo)
+            else:
+                img_label.config(text="No Image", width=12)
+
+            info = ttk.Frame(card)
+            info.pack(side="left", fill="x", expand=True)
+
+            ttk.Label(info, text=m[1], font=("Poppins", 12, "bold")).pack(anchor="w")
+            ttk.Label(info, text=f"Kategori: {m[2]}").pack(anchor="w")
+            ttk.Label(info, text=f"Harga: Rp{m[3]:,}").pack(anchor="w")
+
+            action = ttk.Frame(card)
+            action.pack(side="right")
+
+            qty = tk.IntVar(value=1)
+            ttk.Entry(action, textvariable=qty, width=5).pack(pady=2)
+            ttk.Button(
+                action,
+                text="Tambah",
+                command=lambda x=m, q=qty: self.add_to_cart(x, q.get())
+            ).pack(pady=2)
+
+    def add_to_cart(self, menu, jumlah):
         if jumlah <= 0:
             return
 
-        self.order.add_item(nama, harga, jumlah)
-        self.refresh_order()
+        for item in self.cart:
+            if item["id"] == menu[0]:
+                item["jumlah"] += jumlah
+                self.refresh_cart()
+                return
 
-    def refresh_order(self):
+        self.cart.append({
+            "id": menu[0],
+            "nama": menu[1],
+            "harga": menu[3],
+            "jumlah": jumlah
+        })
+        self.refresh_cart()
+
+    def refresh_cart(self):
         self.order_table.delete(*self.order_table.get_children())
-        for item in self.order.items:
+        total = 0
+        for item in self.cart:
+            subtotal = item["harga"] * item["jumlah"]
+            total += subtotal
             self.order_table.insert(
-                "", "end",
-                values=(item["nama"], item["jumlah"], item["subtotal"])
+                "",
+                "end",
+                values=(item["nama"], item["jumlah"], subtotal)
             )
-        self.total_label.config(
-            text=f"Total : Rp{self.order.get_total():,}"
-        )
+        self.total_label.config(text=f"Total : Rp{total:,}")
 
-    # =========================
     def pilih_pembayaran(self):
-        if not self.order.items:
+        if not self.cart:
             return
 
         popup = tk.Toplevel(self.window)
-        popup.title("Metode Pembayaran")
-        popup.geometry("350x200")
-        popup.resizable(False, False)
+        popup.title("Pembayaran")
+        popup.geometry("350x300")
+
+        total = sum(i["harga"] * i["jumlah"] for i in self.cart)
 
         ttk.Label(
             popup,
-            text="Pilih Metode Pembayaran",
+            text=f"Total : Rp{total:,}",
             font=("Poppins", 14, "bold")
         ).pack(pady=15)
 
@@ -159,13 +204,9 @@ class PembeliWindow:
 
     def selesai(self, popup, metode):
         popup.destroy()
-        total = self.order.get_total()
-
         messagebox.showinfo(
             "Pembayaran",
-            f"Cara pembayaran : {metode}\n"
-            f"Total : Rp{total:,}\n\n"
-            f"Silahkan pergi ke kasir"
+            f"Metode: {metode}\nPembayaran berhasil"
         )
-
-        self.window.destroy()
+        self.cart.clear()
+        self.refresh_cart()

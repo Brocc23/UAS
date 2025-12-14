@@ -21,48 +21,40 @@ class ReportWindow:
 
         ttk.Label(
             container,
-            text="Laporan Penjualan (Dummy)",
+            text="Laporan Penjualan Bulanan",
             style="Header.TLabel"
         ).pack(pady=10)
 
-        # ===== CONTROL =====
-        control = ttk.Frame(container)
-        control.pack(pady=10)
-
-        ttk.Label(control, text="Periode:").pack(side="left", padx=5)
-
-        self.periode = ttk.Combobox(
-            control,
-            values=["Harian", "Mingguan", "Bulanan"],
-            state="readonly",
-            width=15
+        info = ttk.Label(
+            container,
+            text="Menampilkan total penjualan 3 bulan terakhir",
+            foreground="#555"
         )
-        self.periode.pack(side="left", padx=5)
-        self.periode.current(2)
+        info.pack(pady=(0, 10))
 
-        ttk.Button(
-            control,
-            text="Tampilkan Laporan",
-            command=self.show_chart
-        ).pack(side="left", padx=10)
-
-        # ===== CHART AREA (kosong awalnya) =====
         self.chart_frame = ttk.Frame(container)
         self.chart_frame.pack(fill="both", expand=True)
+
+        self.show_chart()
 
     def show_chart(self):
         for widget in self.chart_frame.winfo_children():
             widget.destroy()
 
-        bulan = ["Jan", "Feb", "Mar", "Apr", "Mei"]
-        penjualan = [random.randint(4_000_000, 15_000_000) for _ in bulan]
+        bulan = ["September", "Oktober", "November"]
+        penjualan = [
+            random.randint(7_000_000, 12_000_000),
+            random.randint(7_000_000, 12_000_000),
+            random.randint(7_000_000, 12_000_000),
+        ]
 
-        fig = Figure(figsize=(8, 4), dpi=100)
+        fig = Figure(figsize=(9, 4.5), dpi=100)
         ax = fig.add_subplot(111)
 
         ax.plot(bulan, penjualan, marker="o")
-        ax.set_title("Grafik Penjualan")
-        ax.set_ylabel("Total (Rp)")
+        ax.set_title("Grafik Penjualan Bulanan")
+        ax.set_ylabel("Total Penjualan (Rp)")
+        ax.set_xlabel("Bulan")
         ax.grid(True)
 
         canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
