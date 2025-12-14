@@ -1,8 +1,3 @@
-# CATATAN PENTING
-# File ini HANYA merapikan UI (layout, spacing, style).
-# TIDAK ADA perubahan fungsi / logika / pemanggilan model.
-# Semua method add/update/delete/load TETAP sama.
-
 import tkinter as tk
 from tkinter import ttk, filedialog
 from cafe_app.utils import show_info, show_error
@@ -14,7 +9,6 @@ class AdminWindow:
         self.root = root
         self.user = user
 
-        # hanya inisialisasi variabel (bukan perubahan fungsi)
         self.selected_menu_id = None
         self.selected_user_id = None
         self.foto_menu_path = ""
@@ -24,7 +18,6 @@ class AdminWindow:
         self.window.geometry("920x620")
         self.window.configure(bg="#f5f6fa")
 
-        # ===== STYLE (UI ONLY) =====
         style = ttk.Style()
         style.theme_use("default")
         style.configure("TNotebook.Tab", padding=(14, 8))
@@ -47,7 +40,6 @@ class AdminWindow:
         self.build_menu_tab()
         self.build_user_tab()
 
-    # ================= MENU TAB =================
     def build_menu_tab(self):
         form = ttk.LabelFrame(self.tab_menu, text="Menu", style="Section.TLabelframe")
         form.pack(fill="x", padx=10, pady=10)
@@ -138,7 +130,6 @@ class AdminWindow:
         show_info("Menu berhasil dihapus.")
         self.load_menu()
 
-    # ================= USER TAB =================
     def build_user_tab(self):
         form = ttk.LabelFrame(self.tab_user, text="User", style="Section.TLabelframe")
         form.pack(fill="x", padx=10, pady=10)
