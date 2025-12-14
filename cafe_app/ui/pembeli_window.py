@@ -4,7 +4,6 @@ from PIL import Image, ImageTk
 import os
 from cafe_app.logika.menu_model import MenuModel
 
-
 class PembeliWindow:
     def __init__(self, root, user):
         self.window = tk.Toplevel(root)
@@ -13,11 +12,13 @@ class PembeliWindow:
 
         self.menu_model = MenuModel()
         self.cart = []
-        self.images = []
+        self.images = [] # Menyimpan referensi gambar agar tidak hilang
 
+        # Container Utama
         container = ttk.Frame(self.window, padding=20)
         container.pack(fill="both", expand=True)
 
+        # Header
         header = ttk.Label(
             container,
             text="Pemesanan Menu",
@@ -25,6 +26,7 @@ class PembeliWindow:
         )
         header.pack(pady=10)
 
+        # Bagian Kontrol (Cari & Filter)
         control = ttk.Frame(container)
         control.pack(fill="x", pady=10)
 
@@ -46,6 +48,7 @@ class PembeliWindow:
         kategori_box.pack(side="left")
         kategori_box.bind("<<ComboboxSelected>>", lambda e: self.load_menu())
 
+        # Area Menu (Scrollable)
         menu_area = ttk.Frame(container)
         menu_area.pack(fill="both", expand=True)
 
@@ -64,6 +67,7 @@ class PembeliWindow:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # Area Keranjang Belanja
         order_box = ttk.LabelFrame(container, text="Keranjang")
         order_box.pack(fill="x", pady=10)
 
@@ -92,14 +96,17 @@ class PembeliWindow:
             command=self.pilih_pembayaran
         ).pack(pady=10)
 
+        # Muat menu pertama kali
         self.load_menu()
 
     def load_menu(self):
+        # 1. Bersihkan tampilan lama
         for w in self.menu_frame.winfo_children():
             w.destroy()
 
         self.images.clear()
 
+        # 2. Ambil data
         keyword = self.search_var.get()
         kategori = self.kategori_var.get()
         if kategori == "Semua":
@@ -107,41 +114,70 @@ class PembeliWindow:
 
         menus = self.menu_model.search_menu(keyword, kategori)
 
-        for m in menus:
-            card = ttk.Frame(self.menu_frame, padding=10, relief="ridge")
-            card.pack(fill="x", pady=6)
+        # 3. Konfigurasi Grid agar kolom rata
+        self.menu_frame.columnconfigure(0, weight=1)
+        self.menu_frame.columnconfigure(1, weight=1)
 
-            img_label = ttk.Label(card)
-            img_label.pack(side="left", padx=10)
+        # 4. Loop data menu
+        for index, m in enumerate(menus):
+            # Hitung posisi baris dan kolom (2 kolom per baris)
+            row = index // 2
+            col = index % 2
+
+            # Container Kartu Menu
+            card = ttk.Frame(self.menu_frame, padding=10, relief="groove", borderwidth=1)
+            # Gunakan grid, bukan pack
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+
+            # --- Gambar Menu (Di Atas) ---
+            img_container = ttk.Frame(card)
+            img_container.pack(pady=5)
+            
+            img_label = ttk.Label(img_container)
+            img_label.pack()
 
             if m[5] and os.path.exists(m[5]):
-                img = Image.open(m[5])
-                img = img.resize((100, 100))
-                photo = ImageTk.PhotoImage(img)
-                img_label.config(image=photo)
-                self.images.append(photo)
+                try:
+                    img = Image.open(m[5])
+                    img = img.resize((120, 100)) # Ukuran gambar sedikit disesuaikan
+                    photo = ImageTk.PhotoImage(img)
+                    img_label.config(image=photo)
+                    self.images.append(photo)
+                except Exception:
+                    img_label.config(text="Error Img")
             else:
-                img_label.config(text="No Image", width=12)
+                img_label.config(text="No Image")
 
+            # --- Info Menu (Di Tengah) ---
             info = ttk.Frame(card)
-            info.pack(side="left", fill="x", expand=True)
+            info.pack(fill="x", pady=5)
 
-            ttk.Label(info, text=m[1], font=("Poppins", 12, "bold")).pack(anchor="w")
-            ttk.Label(info, text=f"Kategori: {m[2]}").pack(anchor="w")
-            ttk.Label(info, text=f"Harga: Rp{m[3]:,}").pack(anchor="w")
+            ttk.Label(info, text=m[1], font=("Poppins", 12, "bold"), anchor="center").pack(fill="x")
+            ttk.Label(info, text=f"{m[2]}", font=("Poppins", 9), foreground="gray", anchor="center").pack(fill="x")
+            ttk.Label(info, text=f"Rp{m[3]:,}", font=("Poppins", 10, "bold"), foreground="green", anchor="center").pack(fill="x")
 
+            # --- Tombol Aksi (Di Bawah) ---
             action = ttk.Frame(card)
-            action.pack(side="right")
+            action.pack(pady=5)
+
+            qty_label = ttk.Label(action, text="Jml:")
+            qty_label.pack(side="left", padx=2)
 
             qty = tk.IntVar(value=1)
-            ttk.Entry(action, textvariable=qty, width=5).pack(pady=2)
+            ttk.Entry(action, textvariable=qty, width=5).pack(side="left", padx=2)
+            
             ttk.Button(
                 action,
                 text="Tambah",
                 command=lambda x=m, q=qty: self.add_to_cart(x, q.get())
-            ).pack(pady=2)
+            ).pack(side="left", padx=5)
 
     def add_to_cart(self, menu, jumlah):
+        try:
+            jumlah = int(jumlah)
+        except ValueError:
+            return
+
         if jumlah <= 0:
             return
 
@@ -174,6 +210,7 @@ class PembeliWindow:
 
     def pilih_pembayaran(self):
         if not self.cart:
+            messagebox.showwarning("Peringatan", "Keranjang masih kosong!")
             return
 
         popup = tk.Toplevel(self.window)
