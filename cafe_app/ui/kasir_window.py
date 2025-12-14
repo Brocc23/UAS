@@ -1,10 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-import uuid
-
-from cafe_app.database import get_menu_items
-from cafe_app.utils import show_info, show_error
-
+from cafe_app.utils import show_error
 
 class KasirWindow:
     def __init__(self, root, user):
@@ -12,98 +8,59 @@ class KasirWindow:
         self.user = user
 
         self.window = tk.Toplevel(root)
-        self.window.title("Kasir - Café App")
-        self.window.geometry("950x520")
+        self.window.title("Kasir")
+        self.window.geometry("900x900")
         self.window.resizable(False, False)
-        self.window.configure(bg="#f5f6fa")
 
         self.metode = tk.StringVar(value="QRIS")
+        self.total_var = tk.StringVar()
 
         self.build_ui()
-        self.load_menu()
 
     def build_ui(self):
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("Treeview", rowheight=28)
-        style.configure("Header.TLabel", font=("Poppins", 16, "bold"))
-        style.configure("Section.TLabelframe", padding=10)
+        frame = ttk.Frame(self.window, padding=20)
+        frame.pack(fill="both", expand=True)
 
-        main = tk.Frame(self.window, bg="#f5f6fa")
-        main.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Kasir", font=("Poppins", 16, "bold")).pack(pady=10)
 
-        # ===== LEFT =====
-        frame_left = ttk.LabelFrame(main, text="Daftar Menu")
-        frame_left.pack(side=tk.LEFT, fill=tk.Y)
+        ttk.Label(frame, text="Metode Pembayaran").pack(anchor="w")
+        ttk.Radiobutton(frame, text="QRIS", variable=self.metode, value="QRIS").pack(anchor="w")
+        ttk.Radiobutton(frame, text="Tunai", variable=self.metode, value="Tunai").pack(anchor="w")
 
-        self.menu_list = ttk.Treeview(
-            frame_left,
-            columns=("Nama", "Harga", "Stok"),
-            show="headings",
-            height=18
-        )
-        self.menu_list.heading("Nama", text="Nama")
-        self.menu_list.heading("Harga", text="Harga")
-        self.menu_list.heading("Stok", text="Stok")
-        self.menu_list.pack()
+        ttk.Label(frame, text="Total Harga").pack(anchor="w", pady=(10, 0))
+        ttk.Entry(frame, textvariable=self.total_var).pack(fill="x")
 
-        # ===== MIDDLE =====
-        frame_mid = ttk.Frame(main)
-        frame_mid.pack(side=tk.LEFT, padx=15)
+        ttk.Button(frame, text="Bayar", command=self.bayar).pack(pady=15)
 
-        ttk.Button(frame_mid, text="Tambah ▶", command=self.add_item).pack(pady=10)
-        ttk.Button(frame_mid, text="◀ Hapus", command=self.remove_item).pack(pady=10)
+        self.result_frame = ttk.Frame(frame)
+        self.result_frame.pack(fill="both", expand=True)
 
-        # ===== RIGHT =====
-        frame_right = ttk.LabelFrame(main, text="Keranjang")
-        frame_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    def bayar(self):
+        for w in self.result_frame.winfo_children():
+            w.destroy()
 
-        self.cart = ttk.Treeview(
-            frame_right,
-            columns=("Nama", "Jumlah", "Subtotal"),
-            show="headings",
-            height=14
-        )
-        self.cart.heading("Nama", text="Nama")
-        self.cart.heading("Jumlah", text="Jumlah")
-        self.cart.heading("Subtotal", text="Subtotal")
-        self.cart.pack(fill=tk.BOTH, expand=True)
-
-        ttk.Button(frame_right, text="Checkout", command=self.checkout).pack(pady=12)
-
-    def load_menu(self):
-        for i in self.menu_list.get_children():
-            self.menu_list.delete(i)
-
-        data = get_menu_items()
-        for item in data:
-            menu_id = item[0]
-            nama = item[1]
-            harga = item[3]
-            stok = item[4]
-            self.menu_list.insert("", tk.END, iid=str(menu_id), values=(nama, harga, stok))
-
-    def add_item(self):
-        selected = self.menu_list.focus()
-        if not selected:
-            show_error("Pilih item terlebih dahulu!")
+        total = self.total_var.get()
+        if not total.isdigit():
+            show_error("Total harga harus angka")
             return
 
-        nama, harga, stok = self.menu_list.item(selected, "values")
-        harga = int(harga)
+        total = int(total)
 
-        iid_cart = str(uuid.uuid4())
-        self.cart.insert("", tk.END, iid=iid_cart, values=(nama, 1, harga))
+        if self.metode.get() == "QRIS":
+            img = tk.PhotoImage(file="cafe_app/assets/images/qris_dummy.png")
+            label_img = ttk.Label(self.result_frame, image=img)
+            label_img.image = img
+            label_img.pack(pady=10)
 
-    def remove_item(self):
-        selected = self.cart.focus()
-        if selected:
-            self.cart.delete(selected)
+            ttk.Label(
+                self.result_frame,
+                text=f"Total: Rp {total:,}",
+                font=("Poppins", 14, "bold")
+            ).pack()
 
-    def checkout(self):
-        total = 0
-        for iid in self.cart.get_children():
-            subtotal = int(self.cart.item(iid, "values")[2])
-            total += subtotal
-
-        show_info(f"Total pembayaran: {total}")
+        else:
+            ttk.Label(
+                self.result_frame,
+                text=f"Total Tunai\nRp {total:,}",
+                font=("Poppins", 18, "bold")
+            ).pack(pady=40)
