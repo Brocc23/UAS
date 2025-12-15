@@ -164,9 +164,17 @@ class PembeliWindow:
         # item: (id, nama, kategori, harga, stok, foto)
         m_id, nama, kat, harga, stok, foto = item
         
-        card = tk.Frame(self.scrollable_frame, bg="white", padx=10, pady=10, relief="raised", borderwidth=1)
-        card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-
+        # Enforce fixed size for symmetry
+        card_width = 220
+        card_height = 320
+        
+        card = tk.Frame(self.scrollable_frame, bg="white", width=card_width, height=card_height, relief="raised", borderwidth=1)
+        card.pack_propagate(False) # Prevent shrinking/expanding to fit content
+        card.grid(row=row, column=col, padx=10, pady=10)
+        
+        # Inner content frame
+        inner_content = tk.Frame(card, bg="white")
+        inner_content.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Image Handling
         if foto and os.path.exists(foto):
@@ -174,30 +182,34 @@ class PembeliWindow:
                 img = Image.open(foto)
                 img.thumbnail((150, 100)) # Resize for card
                 photo = ImageTk.PhotoImage(img)
-                lbl_img = tk.Label(card, image=photo, bg="white")
+                lbl_img = tk.Label(inner_content, image=photo, bg="white")
                 lbl_img.image = photo # Keep reference
-                lbl_img.pack(fill="x", pady=(0, 10))
+                lbl_img.pack(side="top", pady=(0, 10))
             except Exception:
-                tk.Label(card, text="[Gambar Rusak]", bg="#eee", width=20, height=5).pack(fill="x", pady=(0, 10))
+                tk.Label(inner_content, text="[Gambar Rusak]", bg="#eee", width=20, height=5).pack(side="top", pady=(0, 10))
         else:
-            tk.Label(card, text="[No Image]", bg="#eee", width=20, height=5).pack(fill="x", pady=(0, 10))
+            tk.Label(inner_content, text="[No Image]", bg="#eee", width=20, height=5).pack(side="top", pady=(0, 10))
         
-        tk.Label(card, text=nama, font=("Segoe UI", 11, "bold"), bg="white").pack(anchor="w")
-        tk.Label(card, text=kat, font=("Segoe UI", 9), fg="grey", bg="white").pack(anchor="w")
-        tk.Label(card, text=f"Rp {harga:,}", font=("Segoe UI", 10, "bold"), fg=COLORS["primary"], bg="white").pack(anchor="w", pady=5)
+        # Product Info
+        tk.Label(inner_content, text=nama, font=("Segoe UI", 11, "bold"), bg="white", wraplength=190, justify="left").pack(anchor="w", fill="x")
+        tk.Label(inner_content, text=kat, font=("Segoe UI", 9), fg="grey", bg="white").pack(anchor="w")
+        tk.Label(inner_content, text=f"Rp {harga:,}", font=("Segoe UI", 10, "bold"), fg=COLORS["primary"], bg="white").pack(anchor="w", pady=5)
+        
+        # Spacer to push button to bottom
+        tk.Frame(inner_content, bg="white").pack(fill="both", expand=True) 
         
         state = "normal" if stok > 0 else "disabled"
         btn_text = "Tambah" if stok > 0 else "Habis"
         
         btn = tk.Button(
-            card, text=btn_text, 
+            inner_content, text=btn_text, 
             bg=COLORS["primary"] if stok > 0 else "grey", 
             fg="white", 
             state=state,
             relief="flat",
             command=lambda i=item: self.add_to_cart(i)
         )
-        btn.pack(fill="x", pady=(5, 0))
+        btn.pack(side="bottom", fill="x", pady=(5, 0))
 
     def load_tables(self):
         conn = get_connection()
