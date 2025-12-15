@@ -358,13 +358,6 @@ class PembeliWindow:
             conn.commit()
             messagebox.showinfo("Sukses", "Pesanan berhasil dibuat! Mohon bayar di kasir.")
             
-            # Close this window and open Kasir
-            self.window.destroy()
-            from cafe_app.ui.kasir_window import KasirWindow
-            # We pass current user (Pembeli) to KasirWindow. 
-            # In a real app this is weird, but per request "arahkan ke kasir window"
-            KasirWindow(self.root, self.user) 
-            
         except Exception as e:
             conn.rollback()
             messagebox.showerror("Error", f"Gagal membuat pesanan: {e}")

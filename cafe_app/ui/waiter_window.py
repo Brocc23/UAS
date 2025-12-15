@@ -13,7 +13,7 @@ class WaiterWindow:
         elif isinstance(user, list) or isinstance(user, tuple): username = user[1]
 
         self.window = tk.Toplevel(root)
-        self.window.title(f"Waiter Panel - {username}")
+        self.window.title(f"Waiter - {username}")
         self.window.state("zoomed")
         self.window.configure(bg=COLORS["bg"])
         

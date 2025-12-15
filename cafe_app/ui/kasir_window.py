@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import os
 from cafe_app.utils import show_error
@@ -72,6 +72,9 @@ class KasirWindow:
         btn_container.pack(fill="x", pady=30)
         
         create_button(btn_container, "PROSES PEMBAYARAN", self.proses_pembayaran, "primary").pack(fill="x")
+        
+        # Tambah Tombol Tampilkan Struk
+        create_button(btn_container, "TAMPILKAN STRUK", self.tampilkan_struk, "success").pack(fill="x", pady=(10,0))
 
         # Result Area
         self.result_frame = tk.Frame(card, bg=COLORS["card"])
@@ -149,3 +152,25 @@ class KasirWindow:
             wraplength=300,
             justify="center"
         ).pack(pady=10)
+
+    def tampilkan_struk(self):
+        total = self.total_var.get()
+        if not total.isdigit():
+            show_error("Total harus berupa angka")
+            return
+
+        total = int(total)
+        metode = self.metode.get()
+
+        # Window baru untuk struk
+        struk_win = tk.Toplevel(self.window)
+        struk_win.title("Struk Pembayaran")
+        struk_win.geometry("300x400")
+        struk_win.configure(bg="white")
+
+        tk.Label(struk_win, text="STRUK PEMBAYARAN", font=FONTS["h2"], bg="white", fg=COLORS["primary"]).pack(pady=10)
+        tk.Label(struk_win, text=f"Metode: {metode}", font=FONTS["body"], bg="white").pack(pady=5)
+        tk.Label(struk_win, text=f"Total: Rp {total:,}", font=FONTS["h1"], bg="white", fg=COLORS["primary"]).pack(pady=10)
+        tk.Label(struk_win, text="Terima kasih telah berbelanja!", font=FONTS["body"], bg="white").pack(pady=20)
+
+        tk.Button(struk_win, text="Tutup", command=struk_win.destroy, bg=COLORS["primary"], fg="white").pack(pady=10)
