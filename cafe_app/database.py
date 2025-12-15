@@ -61,6 +61,16 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vouchers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kode TEXT UNIQUE NOT NULL,
+            tipe TEXT NOT NULL,
+            nilai INTEGER NOT NULL,
+            kuota INTEGER DEFAULT 0
+        )
+    """)
+
     cur.execute("SELECT COUNT(*) FROM users")
     if cur.fetchone()[0] == 0:
         default_users = [

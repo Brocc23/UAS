@@ -74,8 +74,16 @@ class AdminWindow:
         header.pack(fill="x")
         tk.Label(header, text="CAFE APP ADMIN", font=("Segoe UI",16,"bold"),
                  bg=self.colors["card"], fg=self.colors["primary"]).pack(side="left", pady=15)
-        tk.Label(header, text=f"Halo, {self.user['username']} ({self.user['role']})",
-                 font=self.fonts["body"], bg=self.colors["card"], fg=self.colors["text_grey"]).pack(side="right", pady=15)
+        tk.Label(
+            header,
+            text=f"Halo, {self.user['username']} ({self.user['role']})",
+            font=self.fonts["body"],
+            bg=self.colors["card"],
+            fg=self.colors["text_grey"]
+        ).pack(side="right", pady=15, padx=(0, 10))
+        
+        from cafe_app.ui.logout_utils import global_logout
+        tk.Button(header, text="Log Out", command=lambda: global_logout(self.window, self.root), bg=self.colors["danger"], fg="white", relief="flat", padx=10).pack(side="right", pady=15)
 
         # Container
         container = tk.Frame(self.window, bg=self.colors["bg"], padx=20, pady=20)
@@ -202,12 +210,15 @@ class AdminWindow:
         s = self.menu_table.focus()
         if not s: return
         d = self.menu_table.item(s)["values"]
-        self.selected_menu_id = d[0]
+        # Ensure ID is handled correctly (sometimes values are strings)
+        self.selected_menu_id = int(d[0]) if d[0] else None
+        
         self.nama_menu.delete(0,tk.END); self.nama_menu.insert(0,d[1])
         self.kategori_menu.delete(0,tk.END); self.kategori_menu.insert(0,d[2])
         self.harga_menu.delete(0,tk.END); self.harga_menu.insert(0,d[3])
         self.stok_menu.delete(0,tk.END); self.stok_menu.insert(0,d[4])
-        self.foto_menu_path = d[5]; self.show_preview_foto(self.foto_menu_path)
+        self.foto_menu_path = d[5] if len(d) > 5 else ""
+        self.show_preview_foto(self.foto_menu_path)
 
     def update_menu(self):
         if not self.selected_menu_id: 
@@ -226,7 +237,9 @@ class AdminWindow:
         except Exception as e: messagebox.showerror("Error",str(e))
 
     def delete_menu(self):
-        if not self.selected_menu_id: return
+        if not self.selected_menu_id:
+            messagebox.showwarning("Peringatan", "Pilih menu yang akan dihapus terlebih dahulu!")
+            return
         if messagebox.askyesno("Konfirmasi","Yakin hapus menu ini?"):
             MenuModel().delete_menu(self.selected_menu_id)
             show_info("Menu berhasil dihapus.")

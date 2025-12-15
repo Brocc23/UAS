@@ -2,206 +2,369 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import os
+import datetime
+from cafe_app.ui.style_utils import COLORS, FONTS, create_button, create_card
 from cafe_app.logika.menu_model import MenuModel
-from cafe_app.ui.style_utils import COLORS, FONTS, setup_global_styles, create_card, create_button
+from cafe_app.logika.voucher_model import VoucherModel
+from cafe_app.database import get_connection
 
 class PembeliWindow:
     def __init__(self, root, user):
+        self.root = root
+        self.user = user
         self.window = tk.Toplevel(root)
-        self.window.title("Cafe App - Pemesanan")
+        self.window.title("Menu Pemesanan")
         self.window.state("zoomed")
         self.window.configure(bg=COLORS["bg"])
 
-        setup_global_styles()
-
         self.menu_model = MenuModel()
-        self.cart = []
-        self.images = [] 
-        
-        # --- LAYOUT UTAMA: SIDEBAR (KIRI) & KONTEN (KANAN) ---
-        main_container = tk.Frame(self.window, bg=COLORS["bg"], padx=0, pady=0)
-        main_container.pack(fill="both", expand=True)
+        self.voucher_model = VoucherModel()
+        self.cart = {} # {menu_id: {'data': item_tuple, 'qty': int}}
+        self.voucher_applied = None
 
-        # 1. Sidebar (Filter & Cart)
-        self.sidebar = tk.Frame(main_container, bg="white", width=350, padx=20, pady=20)
-        self.sidebar.pack(side="left", fill="y")
-        self.sidebar.pack_propagate(False) # Fixed width
+        self.setup_ui()
+        self.load_menu_items()
+        self.load_tables()
 
-        self.build_sidebar()
-
-        # 2. Main Content (Menu Grid)
-        content_area = tk.Frame(main_container, bg=COLORS["bg"], padx=20, pady=20)
-        content_area.pack(side="left", fill="both", expand=True)
-
+    def setup_ui(self):
         # Header
-        header = tk.Frame(content_area, bg=COLORS["bg"])
-        header.pack(fill="x", pady=(0, 20))
+        header = tk.Frame(self.window, bg="white", height=60, padx=20)
+        header.pack(fill="x")
         
-        tk.Label(header, text="Menu Favorit", font=FONTS["h1"], bg=COLORS["bg"], fg=COLORS["text_dark"]).pack(side="left")
+        tk.Label(header, text="CAFE SOGOK - PEMESANAN", font=FONTS["h2"], bg="white", fg=COLORS["primary"]).pack(side="left", pady=15)
         
-        # Search Box Floating
-        search_frame = tk.Frame(header, bg="white", padx=10, pady=5)
-        search_frame.pack(side="right")
+        from cafe_app.ui.logout_utils import global_logout
+        tk.Button(header, text="Log Out", command=lambda: global_logout(self.window, self.root), bg=COLORS["danger"], fg="white", relief="flat").pack(side="right", pady=15)
+
+        # Main Layout
+        content = tk.Frame(self.window, bg=COLORS["bg"], padx=20, pady=20)
+        content.pack(fill="both", expand=True)
+
+        # Left: Menu Grid (Scrollable)
+        left_frame = tk.Frame(content, bg=COLORS["bg"])
+        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
+
+        # Search / Filter
+        filter_frame = tk.Frame(left_frame, bg=COLORS["bg"])
+        filter_frame.pack(fill="x", pady=(0, 10))
         
-        tk.Label(search_frame, text="🔍", bg="white").pack(side="left")
         self.search_var = tk.StringVar()
-        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=FONTS["body"], relief="flat", bg="white", width=30)
-        self.search_entry.pack(side="left", padx=5)
-        self.search_entry.bind("<KeyRelease>", lambda e: self.load_menu())
-
-        # Scrollable Grid Area
-        self.canvas = tk.Canvas(content_area, bg=COLORS["bg"], highlightthickness=0)
-        scrollbar = ttk.Scrollbar(content_area, orient="vertical", command=self.canvas.yview)
+        entry_search = tk.Entry(filter_frame, textvariable=self.search_var, font=FONTS["body"], width=20)
+        entry_search.pack(side="left", padx=(0, 10), ipady=5)
         
-        self.menu_grid = tk.Frame(self.canvas, bg=COLORS["bg"])
-        self.menu_grid.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        # Category Filter
+        self.cat_var = tk.StringVar(value="Semua")
+        cat_combo = ttk.Combobox(filter_frame, textvariable=self.cat_var, state="readonly", width=15)
+        cat_combo['values'] = ("Semua", "Makanan", "Minuman", "Snack") # Hardcoded or dynamic? Let's use standard + Semua
+        cat_combo.pack(side="left", padx=(0, 10), ipady=5)
+        
+        tk.Button(filter_frame, text="Cari & Filter", command=self.load_menu_items, bg=COLORS["primary"], fg="white", relief="flat").pack(side="left")
 
-        self.canvas.create_window((0, 0), window=self.menu_grid, anchor="nw")
+        # Scrollable Canvas for Menu
+        self.canvas = tk.Canvas(left_frame, bg=COLORS["bg"], highlightthickness=0)
+        scrollbar = tk.Scrollbar(left_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg=COLORS["bg"])
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=scrollbar.set)
 
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        self.load_menu()
+        # Right: Order Summary
+        right_frame = create_card(content, padding=20)
+        right_frame.pack(side="right", fill="y", anchor="n", ipadx=20)
+        right_frame.pack_propagate(False)
+        right_frame.config(width=400)
 
-    def build_sidebar(self):
-        # -- Logo / Brand --
-        tk.Label(self.sidebar, text="CAFE APP", font=("Segoe UI", 18, "bold"), bg="white", fg=COLORS["primary"]).pack(pady=(0, 30))
+        # Right: Order Summary
+        right_frame = create_card(content, padding=20)
+        right_frame.pack(side="right", fill="y", anchor="n", ipadx=20)
+        # Removed pack_propagate(False) to let it resize naturally or constrain via other means if needed.
+        # right_frame.pack_propagate(False) 
+        right_frame.config(width=400) # Min width hint
 
-        # -- Filter Kategori --
-        tk.Label(self.sidebar, text="Kategori", font=FONTS["h3"], bg="white", fg=COLORS["text_grey"]).pack(anchor="w", pady=(0, 10))
+        # Header of Right Frame
+        rx_header = tk.Frame(right_frame, bg=COLORS["card"])
+        rx_header.pack(fill="x", pady=(0, 20))
+        tk.Label(rx_header, text="Pesanan Anda", font=FONTS["h2"], bg=COLORS["card"]).pack(side="left")
+
+        # Table Selection
+        tk.Label(right_frame, text="Pilih Meja", font=("Segoe UI", 9, "bold"), bg=COLORS["card"], fg=COLORS["text_grey"]).pack(anchor="w")
+        self.table_var = tk.StringVar()
+        self.table_combo = ttk.Combobox(right_frame, textvariable=self.table_var, state="readonly")
+        self.table_combo.pack(fill="x", pady=(5, 20))
+
+        # Order List (Treeview)
+        columns = ("Item", "Qty", "Harga", "Aksi")
+        self.cart_tree = ttk.Treeview(right_frame, columns=columns, show="headings", height=10)
+        self.cart_tree.heading("Item", text="Item")
+        self.cart_tree.heading("Qty", text="Qty")
+        self.cart_tree.heading("Harga", text="Total")
+        self.cart_tree.heading("Aksi", text="") # For delete logic status
         
-        self.kategori_var = tk.StringVar(value="Semua")
-        filter_box = ttk.Combobox(self.sidebar, textvariable=self.kategori_var, values=["Semua", "Makanan", "Minuman"], state="readonly", font=FONTS["body"])
-        filter_box.pack(fill="x", pady=(0, 30))
-        filter_box.bind("<<ComboboxSelected>>", lambda e: self.load_menu())
-
-        # -- Keranjang Belanja --
-        tk.Label(self.sidebar, text="Keranjang Saya", font=FONTS["h3"], bg="white", fg=COLORS["text_grey"]).pack(anchor="w", pady=(0, 10))
+        self.cart_tree.column("Item", width=120)
+        self.cart_tree.column("Qty", width=40)
+        self.cart_tree.column("Harga", width=80)
+        self.cart_tree.column("Aksi", width=0, stretch=False) # Hidden ID column really
         
-        # Cart List (Custom styled simple list)
-        self.cart_frame = tk.Frame(self.sidebar, bg="#f8f9fa")
-        self.cart_frame.pack(fill="both", expand=True, pady=(0, 10))
+        self.cart_tree.pack(fill="both", expand=True)
         
-        # Total & Checkout (Stick to bottom)
-        checkout_section = tk.Frame(self.sidebar, bg="white", pady=10)
-        checkout_section.pack(side="bottom", fill="x")
+        # Remove Button
+        tk.Button(right_frame, text="Hapus Item Terpilih", command=self.remove_item, bg=COLORS["danger"], fg="white", relief="flat").pack(fill="x", pady=5)
 
-        tk.Frame(checkout_section, bg=COLORS["border"], height=1).pack(fill="x", pady=(0, 10)) # Separator
+        # Voucher Section
+        v_frame = tk.Frame(right_frame, bg=COLORS["card"])
+        v_frame.pack(fill="x", pady=10)
+        self.voucher_entry = tk.Entry(v_frame, font=FONTS["body"], bg=COLORS["input_bg"], relief="flat")
+        self.voucher_entry.pack(side="left", fill="x", expand=True, ipady=5)
+        tk.Button(v_frame, text="Pakai Kupon", command=self.apply_voucher, bg=COLORS["primary"], fg="white", relief="flat").pack(side="right", padx=(5, 0))
 
-        self.total_label = tk.Label(checkout_section, text="Total: Rp 0", font=FONTS["h2"], bg="white", fg=COLORS["text_dark"])
-        self.total_label.pack(anchor="e", pady=(0, 10))
+        self.lbl_discount = tk.Label(right_frame, text="", bg=COLORS["card"], fg=COLORS["success"])
+        self.lbl_discount.pack(anchor="e")
 
-        create_button(checkout_section, "Bayar Sekarang", self.pilih_pembayaran, "primary").pack(fill="x")
+        # Total
+        self.lbl_total = tk.Label(right_frame, text="Total: Rp 0", font=FONTS["h1"], bg=COLORS["card"], fg=COLORS["primary"])
+        self.lbl_total.pack(anchor="e", pady=20)
 
-        # Initial render cart placeholders
-        self.refresh_cart_display()
+        # Checkout Button
+        create_button(right_frame, "BAYAR SEKARANG", self.checkout, "success").pack(fill="x")
+
+    def load_menu_items(self):
+        # Clear current grid
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+
+        term = self.search_var.get()
+        cat = self.cat_var.get()
+        if cat == "Semua": cat = None
+        
+        items = self.menu_model.search_menu(term, kategori=cat)
+        
+        # Grid layout logic
+        row = 0
+        col = 0
+        max_cols = 3
+
+        for item in items:
+            self.create_menu_card(item, row, col)
+            col += 1
+            if col >= max_cols:
+                col = 0
+                row += 1
+
+    def create_menu_card(self, item, row, col):
+        # item: (id, nama, kategori, harga, stok, foto)
+        m_id, nama, kat, harga, stok, foto = item
+        
+        card = tk.Frame(self.scrollable_frame, bg="white", padx=10, pady=10, relief="raised", borderwidth=1)
+        card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
 
-    def load_menu(self):
-        # Clear existing
-        for w in self.menu_grid.winfo_children(): w.destroy()
-        self.images.clear()
+        # Image Handling
+        if foto and os.path.exists(foto):
+            try:
+                img = Image.open(foto)
+                img.thumbnail((150, 100)) # Resize for card
+                photo = ImageTk.PhotoImage(img)
+                lbl_img = tk.Label(card, image=photo, bg="white")
+                lbl_img.image = photo # Keep reference
+                lbl_img.pack(fill="x", pady=(0, 10))
+            except Exception:
+                tk.Label(card, text="[Gambar Rusak]", bg="#eee", width=20, height=5).pack(fill="x", pady=(0, 10))
+        else:
+            tk.Label(card, text="[No Image]", bg="#eee", width=20, height=5).pack(fill="x", pady=(0, 10))
+        
+        tk.Label(card, text=nama, font=("Segoe UI", 11, "bold"), bg="white").pack(anchor="w")
+        tk.Label(card, text=kat, font=("Segoe UI", 9), fg="grey", bg="white").pack(anchor="w")
+        tk.Label(card, text=f"Rp {harga:,}", font=("Segoe UI", 10, "bold"), fg=COLORS["primary"], bg="white").pack(anchor="w", pady=5)
+        
+        state = "normal" if stok > 0 else "disabled"
+        btn_text = "Tambah" if stok > 0 else "Habis"
+        
+        btn = tk.Button(
+            card, text=btn_text, 
+            bg=COLORS["primary"] if stok > 0 else "grey", 
+            fg="white", 
+            state=state,
+            relief="flat",
+            command=lambda i=item: self.add_to_cart(i)
+        )
+        btn.pack(fill="x", pady=(5, 0))
 
-        # Get Data
-        keyword = self.search_var.get()
-        kategori = self.kategori_var.get()
-        if kategori == "Semua": kategori = None
-        menus = self.menu_model.search_menu(keyword, kategori)
+    def load_tables(self):
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, nomor FROM tables WHERE status = 'kosong'")
+        tables = cur.fetchall()
+        conn.close()
+        
+        self.table_combo['values'] = [f"Meja {t[1]}" for t in tables]
+        self.table_map = {f"Meja {t[1]}": t[0] for t in tables}
 
-        # Render Grid (3 columns)
-        columns = 3
-        for index, m in enumerate(menus):
-            row = index // columns
-            col = index % columns
-            
-            # Use create_card but with pack_propagate allowed for inner content
-            card_frame = tk.Frame(self.menu_grid, bg="white", padx=0, pady=0) 
-            # Drop shadow simulation (optional, skip for clean flat look)
-            
-            card_frame.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-            
-            # --- Image Area ---
-            img_height = 160
-            img_container = tk.Frame(card_frame, bg="#ecf0f1", height=img_height, width=220)
-            img_container.pack_propagate(False)
-            img_container.pack(fill="x")
-            
-            lbl_img = tk.Label(img_container, bg="#ecf0f1")
-            lbl_img.pack(expand=True)
-            
-            if m[5] and os.path.exists(m[5]):
-                try:
-                    img = Image.open(m[5])
-                    # Crop/Resize logic could be better, but resize is fast
-                    img = img.resize((220, img_height))
-                    photo = ImageTk.PhotoImage(img)
-                    lbl_img.config(image=photo)
-                    self.images.append(photo)
-                except:
-                    lbl_img.config(text="Error", fg="red")
+    def add_to_cart(self, item):
+        m_id = item[0]
+        if m_id in self.cart:
+            if self.cart[m_id]['qty'] < item[4]: # Check stock
+                self.cart[m_id]['qty'] += 1
             else:
-                lbl_img.config(text="No Photo", fg="#95a5a6")
-
-            # --- Info Area ---
-            info_box = tk.Frame(card_frame, bg="white", padx=15, pady=15)
-            info_box.pack(fill="both", expand=True)
-
-            tk.Label(info_box, text=m[1], font=("Segoe UI", 11, "bold"), bg="white", fg=COLORS["text_dark"], anchor="w").pack(fill="x")
-            tk.Label(info_box, text=m[2], font=("Segoe UI", 9), bg="white", fg=COLORS["text_grey"], anchor="w").pack(fill="x", pady=(2, 5))
-            
-            # Price & Add Button Row
-            action_row = tk.Frame(info_box, bg="white")
-            action_row.pack(fill="x", pady=(10, 0))
-            
-            tk.Label(action_row, text=f"Rp {m[3]:,}", font=("Segoe UI", 11, "bold"), bg="white", fg=COLORS["primary"]).pack(side="left")
-            
-            btn_add = tk.Button(
-                action_row, text="+", font=("Segoe UI", 12, "bold"), 
-                bg=COLORS["bg"], fg=COLORS["primary"], relief="flat", cursor="hand2",
-                command=lambda x=m: self.add_to_cart(x)
-            )
-            btn_add.pack(side="right") # Small round-ish button
-
-    def add_to_cart(self, menu):
-        # Logic: if exists, increment
-        for item in self.cart:
-            if item["id"] == menu[0]:
-                item["jumlah"] += 1
-                self.refresh_cart_display()
+                messagebox.showwarning("Stok Habis", "Stok tidak mencukupi")
                 return
-
-        self.cart.append({"id": menu[0], "nama": menu[1], "harga": menu[3], "jumlah": 1})
-        self.refresh_cart_display()
-
-    def refresh_cart_display(self):
-        # Clear sidebar list
-        for w in self.cart_frame.winfo_children(): w.destroy()
-
-        if not self.cart:
-            tk.Label(self.cart_frame, text="Keranjang Kosong", font=FONTS["body"], bg="#f8f9fa", fg=COLORS["text_grey"]).pack(pady=20)
-            self.total_label.config(text="Total: Rp 0")
-            return
-
-        total = 0
-        for i, item in enumerate(self.cart):
-            row = tk.Frame(self.cart_frame, bg="#f8f9fa", pady=5)
-            row.pack(fill="x", padx=10)
-            
-            # Name & Price
-            tk.Label(row, text=f"{item['jumlah']}x {item['nama']}", font=("Segoe UI", 10), bg="#f8f9fa", anchor="w").pack(side="left", fill="x", expand=True)
-            
-            subtotal = item['harga'] * item['jumlah']
-            total += subtotal
-            
-            tk.Label(row, text=f"Rp{subtotal:,}", font=("Segoe UI", 10, "bold"), bg="#f8f9fa").pack(side="right")
-            
-            # Minus Button (Optional feature for later)
+        else:
+            self.cart[m_id] = {'data': item, 'qty': 1}
         
-        self.total_label.config(text=f"Total: Rp {total:,}")
+        self.update_cart_tree()
 
-    def pilih_pembayaran(self):
-        if not self.cart: return
-        messagebox.showinfo("Checkout", "Fitur checkout akan membuka window pembayaran.")
-        self.cart.clear()
-        self.refresh_cart_display()
+    def remove_item(self):
+        selected = self.cart_tree.selection()
+        if not selected: return
+        
+        item_id = self.cart_tree.item(selected[0])['tags'][0] # Check setup below
+        # Wait, Treeview tags are tricky. Better to store ID in values or hidden col?
+        # I didn't verify item_id mapping.
+        
+        # Let's use the 'Item' name to match? ID is safer.
+        # Rework: I need to know which menu_id matches the selected row.
+        # I'll store menu_id in the 'values' or use a map.
+        # Simpler: Iterate cart, find matching row.
+        
+        # Better: use current selection index
+        # But list order matches display? Not necessarily if sorted.
+        
+        # Let's map tree item iid to menu_id
+        # I'll simply rebuild the tree with iid=menu_id string
+        pass # Implemented in update_cart_tree
+
+    def update_cart_tree(self):
+        for item in self.cart_tree.get_children():
+            self.cart_tree.delete(item)
+            
+        total_val = 0
+        for m_id, content in self.cart.items():
+            data = content['data']
+            qty = content['qty']
+            subtotal = data[3] * qty
+            total_val += subtotal
+            
+            # Using m_id as iid for easy retrieval
+            self.cart_tree.insert("", "end", iid=str(m_id), values=(data[1], qty, f"{subtotal:,}", "X"))
+
+        self.calculate_total(total_val)
+
+    def remove_item(self):
+        selected = self.cart_tree.selection()
+        if not selected:
+            messagebox.showinfo("Info", "Pilih item yang mau dihapus")
+            return
+            
+        m_id = int(selected[0]) # Since I used m_id as iid
+        del self.cart[m_id]
+        self.update_cart_tree()
+
+    def apply_voucher(self):
+        code = self.voucher_entry.get().strip()
+        if not code: return
+        
+        valid, msg, val, tipe = self.voucher_model.validate_voucher(code)
+        if valid:
+            self.voucher_applied = {'code': code, 'val': val, 'tipe': tipe}
+            messagebox.showinfo("Sukses", f"Voucher {code} dipasang!")
+            self.update_cart_tree() # Recalc total
+        else:
+            messagebox.showerror("Gagal", msg)
+            self.voucher_applied = None
+            self.lbl_discount.config(text="")
+            self.update_cart_tree()
+
+    def calculate_total(self, subtotal):
+        discount = 0
+        if self.voucher_applied:
+            if self.voucher_applied['tipe'] == 'persen':
+                discount = subtotal * (self.voucher_applied['val'] / 100)
+            else:
+                discount = self.voucher_applied['val']
+            
+            # Cap discount at subtotal
+            if discount > subtotal: discount = subtotal
+            
+            self.lbl_discount.config(text=f"Diskon: -Rp {int(discount):,}")
+        else:
+            self.lbl_discount.config(text="")
+
+        final_total = subtotal - discount
+        self.lbl_total.config(text=f"Total: Rp {int(final_total):,}")
+        return int(final_total), int(discount)
+
+    def checkout(self):
+        if not self.cart:
+            messagebox.showwarning("Kosong", "Keranjang belanja kosong")
+            return
+            
+        table_name = self.table_var.get()
+        if not table_name:
+            messagebox.showwarning("Pilih Meja", "Silakan pilih meja dahulu")
+            return
+            
+        table_id = self.table_map[table_name]
+        
+        # Calculate final
+        subtotal = sum(i['data'][3] * i['qty'] for i in self.cart.values())
+        total, discount = self.calculate_total(subtotal)
+        
+        # Save to DB
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        try:
+            # Transaksi
+            cur.execute("""
+                INSERT INTO transaksi (tanggal, total, metode_pembayaran, meja_id, status)
+                VALUES (?, ?, ?, ?, ?)
+            """, (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), total, "Pending", table_id, "pending"))
+            
+            trans_id = cur.lastrowid
+            
+            # Use Voucher if any
+            if self.voucher_applied:
+                self.voucher_model.use_voucher(self.voucher_applied['code'])
+                # Optionally store voucher_id in transaksi if column exists, 
+                # but for now we haven't added it to schema strictly other than my thought.
+                # Use total as net.
+            
+            # Detail Transaksi
+            for m_id, content in self.cart.items():
+                data = content['data']
+                qty = content['qty']
+                line_sub = data[3] * qty
+                
+                cur.execute("""
+                    INSERT INTO detail_transaksi (transaksi_id, menu_id, jumlah, subtotal, diskon)
+                    VALUES (?, ?, ?, ?, 0)
+                """, (trans_id, m_id, qty, line_sub))
+                
+                # Reduce stock
+                cur.execute("UPDATE menu SET stok = stok - ? WHERE id = ?", (qty, m_id))
+
+            # Update Table Status
+            cur.execute("UPDATE tables SET status = 'terisi' WHERE id = ?", (table_id,))
+
+            conn.commit()
+            messagebox.showinfo("Sukses", "Pesanan berhasil dibuat! Mohon bayar di kasir.")
+            
+            # Close this window and open Kasir
+            self.window.destroy()
+            from cafe_app.ui.kasir_window import KasirWindow
+            # We pass current user (Pembeli) to KasirWindow. 
+            # In a real app this is weird, but per request "arahkan ke kasir window"
+            KasirWindow(self.root, self.user) 
+            
+        except Exception as e:
+            conn.rollback()
+            messagebox.showerror("Error", f"Gagal membuat pesanan: {e}")
+        finally:
+            conn.close()

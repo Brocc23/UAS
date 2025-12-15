@@ -56,15 +56,44 @@ class OwnerWindow:
             width=30
         ).pack(pady=10)
 
+        create_button(
+            btn_frame,
+            "KELOLA KUPON DISKON",
+            self.open_voucher,
+            "warning",
+            width=30
+        ).pack(pady=10)
+
         tk.Label(card, text="", bg=COLORS["card"]).pack(pady=10)
         
         create_button(
             btn_frame,
             "LOGOUT",
-            self.window.destroy,
+            self.logout_to_login,
             "danger",
             width=30
         ).pack(pady=10)
+        
+    def open_voucher(self):
+        from cafe_app.ui.voucher_window import VoucherWindow
+        VoucherWindow(self.master)
+    
+    def open_admin(self):
+        AdminWindow(self.master, self.user)
+
+    def open_report(self):
+        ReportWindow(self.master)
+
+    def logout_to_login(self):
+        self.window.destroy()
+        from cafe_app.ui.login_window import LoginWindow
+        # Re-initialize LoginWindow with the master (root)
+        # Note: self.master is root
+        for widget in self.master.winfo_children():
+            # Safety cleanup if any
+            if isinstance(widget, tk.Toplevel): widget.destroy()
+            
+        LoginWindow(self.master)
 
     def open_admin(self):
         AdminWindow(self.master, self.user)

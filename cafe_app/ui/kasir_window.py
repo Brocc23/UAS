@@ -37,6 +37,9 @@ class KasirWindow:
             bg=COLORS["bg"], 
             fg=COLORS["primary"]
         ).pack(pady=(0, 20))
+        
+        from cafe_app.ui.logout_utils import global_logout
+        tk.Button(container, text="Log Out", command=lambda: global_logout(self.window, self.root), bg=COLORS["danger"], fg="white", relief="flat", padx=10).place(relx=1.0, rely=0.0, anchor="ne")
 
         # Main Card
         card = create_card(container)
