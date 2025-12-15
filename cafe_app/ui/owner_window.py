@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from cafe_app.ui.admin_window import AdminWindow
 from cafe_app.ui.report_window import ReportWindow
+from cafe_app.ui.style_utils import COLORS, FONTS, setup_global_styles, create_card, create_button
 
 class OwnerWindow:
     def __init__(self, master, user):
@@ -10,46 +11,60 @@ class OwnerWindow:
 
         self.window = tk.Toplevel(master)
         self.window.title("Owner Panel")
-        self.window.geometry("420x320")
-        self.window.resizable(False, False)
-        self.window.configure(bg="#f5f6fa")
+        self.window.state("zoomed")
+        self.window.configure(bg=COLORS["bg"])
+        
+        setup_global_styles()
 
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("Title.TLabel", font=("Poppins", 16, "bold"))
-        style.configure("Sub.TLabel", font=("Poppins", 11))
-        style.configure("Action.TButton", padding=8)
+        center_frame = tk.Frame(self.window, bg=COLORS["bg"])
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
+        card = create_card(center_frame, padding=40)
+        card.pack(fill="both", expand=True)
 
-        container = ttk.Frame(self.window, padding=20)
-        container.pack(expand=True, fill="both")
+        tk.Label(
+            card,
+            text="OWNER",
+            font=FONTS["h1"],
+            bg=COLORS["card"],
+            fg=COLORS["primary"]
+        ).pack(pady=(0, 10))
 
-        ttk.Label(container, text="Owner Panel", style="Title.TLabel").pack(pady=(0, 5))
-        ttk.Label(
-            container,
-            text=f"Login sebagai: {self.user['username']}",
-            style="Sub.TLabel"
-        ).pack(pady=(0, 20))
+        tk.Label(
+            card,
+            text=f"Selamat Datang, {self.user['username']}",
+            font=FONTS["h3"],
+            bg=COLORS["card"],
+            fg=COLORS["text_grey"]
+        ).pack(pady=(0, 30))
 
-        btn_frame = ttk.Frame(container)
+        btn_frame = tk.Frame(card, bg=COLORS["card"])
         btn_frame.pack(fill="x")
 
-        ttk.Button(
+        create_button(
             btn_frame,
-            text="Buka Admin Panel",
-            style="Action.TButton",
-            command=self.open_admin
-        ).pack(fill="x", pady=6)
+            "KELOLA DATA (ADMIN PANEL)",
+            self.open_admin,
+            "primary",
+            width=30
+        ).pack(pady=10)
 
-        ttk.Button(
+        create_button(
             btn_frame,
-            text="Lihat Laporan",
-            style="Action.TButton",
-            command=self.open_report
-        ).pack(fill="x", pady=6)
+            "LIHAT LAPORAN KEUANGAN",
+            self.open_report,
+            "success",
+            width=30
+        ).pack(pady=10)
 
-        ttk.Separator(container).pack(fill="x", pady=15)
-
-        ttk.Button(container, text="Logout", command=self.window.destroy).pack(fill="x")
+        tk.Label(card, text="", bg=COLORS["card"]).pack(pady=10)
+        
+        create_button(
+            btn_frame,
+            "LOGOUT",
+            self.window.destroy,
+            "danger",
+            width=30
+        ).pack(pady=10)
 
     def open_admin(self):
         AdminWindow(self.master, self.user)
