@@ -77,63 +77,65 @@ class PembeliWindow:
         scrollbar.pack(side="right", fill="y")
 
         # Right: Order Summary
-        right_frame = create_card(content, padding=20)
-        right_frame.pack(side="right", fill="y", anchor="n", ipadx=20)
-        right_frame.pack_propagate(False)
-        right_frame.config(width=400)
-
         # Right: Order Summary
         right_frame = create_card(content, padding=20)
-        right_frame.pack(side="right", fill="y", anchor="n", ipadx=20)
-        # Removed pack_propagate(False) to let it resize naturally or constrain via other means if needed.
-        # right_frame.pack_propagate(False) 
+        right_frame.pack(side="right", fill="y", ipadx=20)
         right_frame.config(width=400) # Min width hint
-
-        # Header of Right Frame
-        rx_header = tk.Frame(right_frame, bg=COLORS["card"])
-        rx_header.pack(fill="x", pady=(0, 20))
-        tk.Label(rx_header, text="Pesanan Anda", font=FONTS["h2"], bg=COLORS["card"]).pack(side="left")
-
-        # Table Selection
-        tk.Label(right_frame, text="Pilih Meja", font=("Segoe UI", 9, "bold"), bg=COLORS["card"], fg=COLORS["text_grey"]).pack(anchor="w")
-        self.table_var = tk.StringVar()
-        self.table_combo = ttk.Combobox(right_frame, textvariable=self.table_var, state="readonly")
-        self.table_combo.pack(fill="x", pady=(5, 20))
-
-        # Order List (Treeview)
-        columns = ("Item", "Qty", "Harga", "Aksi")
-        self.cart_tree = ttk.Treeview(right_frame, columns=columns, show="headings", height=10)
-        self.cart_tree.heading("Item", text="Item")
-        self.cart_tree.heading("Qty", text="Qty")
-        self.cart_tree.heading("Harga", text="Total")
-        self.cart_tree.heading("Aksi", text="") # For delete logic status
+        # right_frame.pack_propagate(False) # Keep it flexible
         
-        self.cart_tree.column("Item", width=120)
-        self.cart_tree.column("Qty", width=40)
-        self.cart_tree.column("Harga", width=80)
-        self.cart_tree.column("Aksi", width=0, stretch=False) # Hidden ID column really
+        # --- Footer Section (Sticky Bottom) ---
+        footer_frame = tk.Frame(right_frame, bg=COLORS["card"])
+        footer_frame.pack(side="bottom", fill="x", pady=(10, 0))
         
-        self.cart_tree.pack(fill="both", expand=True)
-        
-        # Remove Button
-        tk.Button(right_frame, text="Hapus Item Terpilih", command=self.remove_item, bg=COLORS["danger"], fg="white", relief="flat").pack(fill="x", pady=5)
-
-        # Voucher Section
-        v_frame = tk.Frame(right_frame, bg=COLORS["card"])
+        # Voucher
+        v_frame = tk.Frame(footer_frame, bg=COLORS["card"])
         v_frame.pack(fill="x", pady=10)
         self.voucher_entry = tk.Entry(v_frame, font=FONTS["body"], bg=COLORS["input_bg"], relief="flat")
         self.voucher_entry.pack(side="left", fill="x", expand=True, ipady=5)
         tk.Button(v_frame, text="Pakai Kupon", command=self.apply_voucher, bg=COLORS["primary"], fg="white", relief="flat").pack(side="right", padx=(5, 0))
 
-        self.lbl_discount = tk.Label(right_frame, text="", bg=COLORS["card"], fg=COLORS["success"])
+        self.lbl_discount = tk.Label(footer_frame, text="", bg=COLORS["card"], fg=COLORS["success"])
         self.lbl_discount.pack(anchor="e")
 
         # Total
-        self.lbl_total = tk.Label(right_frame, text="Total: Rp 0", font=FONTS["h1"], bg=COLORS["card"], fg=COLORS["primary"])
-        self.lbl_total.pack(anchor="e", pady=20)
+        self.lbl_total = tk.Label(footer_frame, text="Total: Rp 0", font=FONTS["h1"], bg=COLORS["card"], fg=COLORS["primary"])
+        self.lbl_total.pack(anchor="e", pady=(5, 20))
 
         # Checkout Button
-        create_button(right_frame, "BAYAR SEKARANG", self.checkout, "success").pack(fill="x")
+        create_button(footer_frame, "BAYAR SEKARANG", self.checkout, "success").pack(fill="x")
+        
+        # --- Top Section (Expandable) ---
+        top_frame = tk.Frame(right_frame, bg=COLORS["card"])
+        top_frame.pack(side="top", fill="both", expand=True)
+
+        # Header
+        rx_header = tk.Frame(top_frame, bg=COLORS["card"])
+        rx_header.pack(fill="x", pady=(0, 20))
+        tk.Label(rx_header, text="Pesanan Anda", font=FONTS["h2"], bg=COLORS["card"]).pack(side="left")
+
+        # Table Selection
+        tk.Label(top_frame, text="Pilih Meja", font=("Segoe UI", 9, "bold"), bg=COLORS["card"], fg=COLORS["text_grey"]).pack(anchor="w")
+        self.table_var = tk.StringVar()
+        self.table_combo = ttk.Combobox(top_frame, textvariable=self.table_var, state="readonly")
+        self.table_combo.pack(fill="x", pady=(5, 20))
+
+        # Order List (Treeview)
+        columns = ("Item", "Qty", "Harga", "Aksi")
+        self.cart_tree = ttk.Treeview(top_frame, columns=columns, show="headings") # Removed fixed height
+        self.cart_tree.heading("Item", text="Item")
+        self.cart_tree.heading("Qty", text="Qty")
+        self.cart_tree.heading("Harga", text="Total")
+        self.cart_tree.heading("Aksi", text="") 
+        
+        self.cart_tree.column("Item", width=120)
+        self.cart_tree.column("Qty", width=40)
+        self.cart_tree.column("Harga", width=80)
+        self.cart_tree.column("Aksi", width=0, stretch=False) 
+        
+        self.cart_tree.pack(fill="both", expand=True)
+        
+        # Remove Button
+        tk.Button(top_frame, text="Hapus Item Terpilih", command=self.remove_item, bg=COLORS["danger"], fg="white", relief="flat").pack(fill="x", pady=5)
 
     def load_menu_items(self):
         # Clear current grid
