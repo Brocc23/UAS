@@ -401,7 +401,7 @@ class KasirWindow:
         # --- Header Struk (CAFE 'e SOGOK) ---
         tk.Label(content_frame, text="Café Sogok", font=FONTS["receipt_h1"], bg="white", fg=COLORS["text_dark"]).pack(pady=(0, 5))
         tk.Label(content_frame, text="Jl. Bebas No. 12", font=FONTS["receipt_mono"], bg="white").pack()
-        tk.Label(content_frame, text="Kasir: ADMIN", font=FONTS["receipt_mono"], bg="white").pack(pady=(0, 10))
+        tk.Label(content_frame, text="Kasir", font=FONTS["receipt_mono"], bg="white").pack(pady=(0, 10))
         
         # Pemisah
         tk.Label(content_frame, text="--------------------------------", font=FONTS["receipt_mono"], bg="white").pack(fill="x", pady=5)
