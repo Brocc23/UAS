@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import os
+import sys
 
 # --- Dummy Imports/Constants untuk Menjalankan Kode Secara Mandiri ---
 
@@ -18,10 +19,14 @@ COLORS = {
     "input_bg": "#EEEEEE",
 }
 
+# Monospace font ditambahkan untuk efek struk
 FONTS = {
     "h1": ("Segoe UI", 16, "bold"),
     "h2": ("Segoe UI", 12, "bold"),
     "body": ("Segoe UI", 10),
+    "receipt_mono": ("Monospace", 10),
+    "receipt_bold": ("Monospace", 10, "bold"),
+    "receipt_h1": ("Monospace", 12, "bold"),
 }
 
 # Dummy Fungsi Utilitas
@@ -92,19 +97,32 @@ def create_entry_with_label(parent, label_text, text_var):
 def global_logout(current_window, root):
     if messagebox.askyesno("Konfirmasi", "Apakah Anda yakin ingin keluar?"):
         current_window.destroy()
-        # Jika root adalah window utama, ia akan tetap terbuka, biasanya kita akan menampilkan 
-        # jendela login lagi di aplikasi penuh.
-        # Di sini kita hanya menutup top level window.
         pass
 
-# --- Path Gambar QRIS (Sesuaikan jika Anda ingin menguji) ---
-# Ubah path ini ke lokasi gambar QRIS dummy Anda. 
-# Untuk pengujian mandiri, Anda mungkin perlu mengubahnya menjadi path relatif yang sesuai 
-# atau menempatkan gambar di folder yang sama.
-QRIS_PATH = "qris_dummy.png" # Ganti dengan nama file gambar dummy Anda
+# --- Penentuan Path QRIS (Disesuaikan dengan Struktur Folder Anda) ---
 
-# Jika Anda tidak memiliki file qris_dummy.png, Anda bisa membuat dummy file PNG kosong 
-# atau mengomentari bagian QRIS untuk pengujian.
+def get_base_dir():
+    """Mencoba mendapatkan direktori proyek utama (satu level di atas 'ui')."""
+    if getattr(sys, 'frozen', False):
+        # Untuk aplikasi yang dibekukan (PyInstaller)
+        return os.path.dirname(sys.path[0])
+    
+    # Asumsi: Skrip berada di ui/ dan assets berada di root/assets
+    try:
+        # os.path.dirname(os.path.abspath(__file__)) -> Path ke 'ui'
+        # os.path.dirname(...) -> Path ke root proyek
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    except NameError:
+        # Fallback jika __file__ tidak didefinisikan
+        return os.getcwd()
+
+# Dapatkan BASE_DIR, yang sekarang harus menjadi direktori proyek utama (di atas 'ui')
+BASE_DIR = get_base_dir()
+
+QRIS_FILENAME = "qris_dummy.png" 
+# PATH AKHIR: [BASE_DIR]/assets/images/qris_dummy.png
+QRIS_PATH = os.path.join(BASE_DIR, "assets", "images", QRIS_FILENAME)
+# ----------------------------------------
 
 # --- Kelas KasirWindow ---
 
@@ -198,8 +216,9 @@ class KasirWindow:
     def hitung_kembalian(self, total_tagihan):
         """Menghitung dan menampilkan kembalian saat metode pembayaran Tunai."""
         uang_diterima_str = self.uang_diterima_var.get()
-        
-        if not uang_diterima_str.isdigit():
+        uang_diterima_str = uang_diterima_str.replace(',', '').replace('.', '')
+
+        if not uang_diterima_str.isdigit() or not uang_diterima_str:
             show_error("Uang diterima harus berupa angka yang valid.")
             self.kembalian_var.set("Rp 0")
             return
@@ -222,12 +241,14 @@ class KasirWindow:
         for w in self.result_frame.winfo_children():
             w.destroy()
 
-        total = self.total_var.get()
-        if not total.isdigit():
-            show_error("Total harus berupa angka")
+        total_str = self.total_var.get()
+        total_str = total_str.replace(',', '').replace('.', '')
+        
+        if not total_str.isdigit() or not total_str:
+            show_error("Total tagihan harus berupa angka yang valid.")
             return
 
-        total = int(total)
+        total = int(total_str)
 
         if self.metode.get() == "QRIS":
             self.show_qris(total)
@@ -243,13 +264,14 @@ class KasirWindow:
             fg=COLORS["text_dark"]
         ).pack(pady=10)
 
+        # Cek path yang telah disesuaikan
         if not os.path.exists(QRIS_PATH):
-            tk.Label(self.result_frame, text=f"Gambar QRIS tidak ditemukan di: {QRIS_PATH}", fg=COLORS["danger"], bg=COLORS["card"]).pack()
+            tk.Label(self.result_frame, text=f"Gambar QRIS tidak ditemukan di path: {QRIS_PATH}", fg=COLORS["danger"], bg=COLORS["card"]).pack()
             return
 
         try:
             img = Image.open(QRIS_PATH)
-            img = img.resize((200, 200))
+            img = img.resize((200, 200), Image.Resampling.LANCZOS)
             self.qr_photo = ImageTk.PhotoImage(img)
             
             tk.Label(self.result_frame, image=self.qr_photo, bg=COLORS["card"]).pack(pady=10)
@@ -329,12 +351,15 @@ class KasirWindow:
         ).pack(pady=10)
 
     def tampilkan_struk(self):
-        total = self.total_var.get()
-        if not total.isdigit():
-            show_error("Total harus berupa angka")
+        total_str = self.total_var.get()
+        # Membersihkan string input total
+        total_str_clean = total_str.replace(',', '').replace('.', '')
+        
+        if not total_str_clean.isdigit() or not total_str_clean:
+            messagebox.showwarning("Peringatan Struk", "Total tagihan belum diisi atau tidak valid.")
             return
 
-        total = int(total)
+        total = int(total_str_clean)
         metode = self.metode.get()
         
         uang_diterima = 0
@@ -343,57 +368,90 @@ class KasirWindow:
         # Ambil data uang diterima/kembalian hanya jika metode Tunai
         if metode == "TUNAI":
             uang_diterima_str = self.uang_diterima_var.get()
-            if uang_diterima_str.isdigit():
-                uang_diterima = int(uang_diterima_str)
+            uang_diterima_str_clean = uang_diterima_str.replace(',', '').replace('.', '')
+            
+            if uang_diterima_str_clean.isdigit():
+                uang_diterima = int(uang_diterima_str_clean)
                 kembalian = uang_diterima - total
             
             if uang_diterima == 0 and total > 0:
                  messagebox.showwarning("Peringatan Struk", "Struk Tunai dibuat, namun Uang Diterima belum dihitung/diinput.")
         
-
-        # Window baru untuk struk
+        # --- Window baru untuk struk ---
         struk_win = tk.Toplevel(self.window)
         struk_win.title("Struk Pembayaran")
         struk_win.geometry("300x450")
         struk_win.configure(bg="white")
-
-        tk.Label(struk_win, text="STRUK PEMBAYARAN", font=FONTS["h2"], bg="white", fg=COLORS["primary"]).pack(pady=10)
-        tk.Label(struk_win, text=f"Metode: {metode}", font=FONTS["body"], bg="white").pack(pady=5)
         
-        # --- Detail Transaksi ---
-        tk.Label(struk_win, text="------------------------------", bg="white").pack()
-        tk.Label(struk_win, text=f"Total Tagihan:", font=FONTS["body"], bg="white", anchor="w").pack(fill="x", padx=20)
-        tk.Label(struk_win, text=f"Rp {total:,}", font=FONTS["h1"], bg="white", fg=COLORS["text_dark"]).pack(pady=(0, 5))
+        # Frame Konten
+        content_frame = tk.Frame(struk_win, bg="white", padx=20, pady=15)
+        content_frame.pack(fill="both", expand=True)
         
-        if metode == "TUNAI":
-            tk.Label(struk_win, text=f"Uang Diterima:", font=FONTS["body"], bg="white", anchor="w").pack(fill="x", padx=20)
-            tk.Label(struk_win, text=f"Rp {uang_diterima:,}", font=FONTS["h2"], bg="white").pack(pady=(0, 5))
+        # Fungsi Pembantu untuk baris rata kiri/rata kanan
+        def print_receipt_row(parent, label, value, row_index, font=FONTS["receipt_mono"], fg=COLORS["text_dark"]):
+            # Kolom 0: Label (Rata Kiri)
+            tk.Label(parent, text=label, font=font, bg="white", fg=fg, anchor="w").grid(row=row_index, column=0, sticky="w")
             
-            tk.Label(struk_win, text="------------------------------", bg="white").pack()
-            tk.Label(struk_win, text=f"Kembalian:", font=FONTS["body"], bg="white", anchor="w").pack(fill="x", padx=20)
-            tk.Label(struk_win, text=f"Rp {kembalian:,}", font=FONTS["h1"], bg="white", fg=COLORS["success"]).pack(pady=(0, 10))
-        # --- Akhir Detail Transaksi ---
+            # Kolom 1: Angka Nominal (Rata Kanan)
+            tk.Label(parent, text=f"Rp {value:,.0f}", font=font, bg="white", fg=fg, anchor="e").grid(row=row_index, column=1, sticky="e")
+            
+            # Kolom 1 mengambil semua sisa ruang
+            parent.grid_columnconfigure(1, weight=1)
 
-        tk.Label(struk_win, text="Terima kasih telah berbelanja!", font=FONTS["body"], bg="white").pack(pady=20)
+        # --- Header Struk (CAFE 'e SOGOK) ---
+        tk.Label(content_frame, text="Café Sogok", font=FONTS["receipt_h1"], bg="white", fg=COLORS["text_dark"]).pack(pady=(0, 5))
+        tk.Label(content_frame, text="Jl. Bebas No. 12", font=FONTS["receipt_mono"], bg="white").pack()
+        tk.Label(content_frame, text="Kasir: ADMIN", font=FONTS["receipt_mono"], bg="white").pack(pady=(0, 10))
+        
+        # Pemisah
+        tk.Label(content_frame, text="--------------------------------", font=FONTS["receipt_mono"], bg="white").pack(fill="x", pady=5)
+        
+        # --- Ringkasan Transaksi ---
+        summary_frame = tk.Frame(content_frame, bg="white")
+        summary_frame.pack(fill="x")
+        
+        row_idx = 0
+        
+        # Total Tagihan
+        print_receipt_row(summary_frame, "TOTAL TAGIHAN", total, row_idx, font=FONTS["receipt_h1"])
+        row_idx += 1
+        
+        # Detail Pembayaran Tunai
+        if metode == "TUNAI":
+            tk.Label(content_frame, text="--------------------------------", font=FONTS["receipt_mono"], bg="white").pack(fill="x", pady=5)
+            
+            print_receipt_row(summary_frame, "Uang Diterima", uang_diterima, row_idx, font=FONTS["receipt_mono"])
+            row_idx += 1
+            
+            print_receipt_row(summary_frame, "KEMBALIAN", kembalian, row_idx, font=FONTS["receipt_bold"], fg=COLORS["success"])
+            row_idx += 1
+        
+        tk.Label(content_frame, text="--------------------------------", font=FONTS["receipt_mono"], bg="white").pack(fill="x", pady=5)
+
+        tk.Label(content_frame, text=f"Metode: {metode}", font=FONTS["receipt_mono"], bg="white", anchor="w").pack(fill="x")
+
+        # --- Footer ---
+        tk.Label(content_frame, text="\n*** Terima kasih ***", font=FONTS["receipt_bold"], bg="white", fg=COLORS["text_dark"]).pack(pady=(15, 5))
+        
         tk.Button(struk_win, text="Tutup", command=struk_win.destroy, bg=COLORS["primary"], fg="white").pack(pady=10)
 
 
 if __name__ == '__main__':
     # Contoh penggunaan standalone
     root = tk.Tk()
-    root.withdraw()  # Sembunyikan window root utama
+    root.withdraw() # Sembunyikan window root utama
 
-    # Buat dummy file QRIS jika tidak ada untuk menghindari error saat mencoba load
+    # Membuat file dummy QRIS jika tidak ditemukan
     if not os.path.exists(QRIS_PATH):
         try:
-            dummy_png = Image.new('RGB', (1, 1), color = 'white')
+            os.makedirs(os.path.dirname(QRIS_PATH), exist_ok=True)
+            dummy_png = Image.new('RGB', (200, 200), color = 'white')
             dummy_png.save(QRIS_PATH)
-            print(f"File dummy '{QRIS_PATH}' dibuat.")
-        except Exception as e:
-            print(f"Gagal membuat file dummy QRIS: {e}")
+            # print(f"SUCCESS: File dummy '{QRIS_FILENAME}' dibuat pada lokasi: {QRIS_PATH}")
+        except Exception:
+             pass
 
-    # Dummy user object
-    dummy_user = {"username": "kasir1"} 
+    dummy_user = {"username": "kasir"} 
     
     app = KasirWindow(root, dummy_user)
     root.mainloop()
